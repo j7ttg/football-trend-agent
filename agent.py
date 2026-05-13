@@ -1,5 +1,5 @@
 """
-Football Trend Agent v3 Ã¢ÂÂ Fixed field names + rich email with links
+Football Trend Agent v3 ÃÂ¢ÃÂÃÂ Fixed field names + rich email with links
 - 6AM: Morning Brief (sounds + creator spy + hashtags + video ideas)
 - 2PM: Afternoon Idea Refresh
 - 9PM: Night Brief (viral recap + tomorrow's plan)
@@ -16,7 +16,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
 
-# Ã¢ÂÂÃ¢ÂÂ CONFIG Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ CONFIG ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 APIFY_TOKEN    = os.environ.get("APIFY_TOKEN", "")
 EMAIL_FROM     = os.environ.get("EMAIL_FROM", "therealjoshjames22@gmail.com")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "")
@@ -25,7 +25,7 @@ BRIEF_TYPE     = os.environ.get("BRIEF_TYPE", "morning")  # morning | afternoon 
 
 APIFY_BASE = "https://api.apify.com/v2"
 
-# Ã¢ÂÂÃ¢ÂÂ CONTENT PILLARS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ CONTENT PILLARS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 PILLARS = {
     "1v1":        ["1v1","one on one","lockdown","shutdown","press coverage","man coverage","jam","bump","guard","lock"],
     "drills":     ["drill","technique","route","break","backpedal","hip","turn","db drill","cornerback","footwork","press","off coverage","ladder","cone"],
@@ -58,48 +58,58 @@ HASHTAGS = [
 
 IDEA_TEMPLATES = {
     "1v1": [
-        "1v1 drill against [opponent type] Ã¢ÂÂ show 3 reps, win each one, caption: 'Nobody getting past me Ã°ÂÂÂ #1v1 #db'",
-        "Film yourself shutting down a WR route for route Ã¢ÂÂ voiceover explaining your read at each step",
+        "1v1 drill against [opponent type] ÃÂ¢ÃÂÃÂ show 3 reps, win each one, caption: 'Nobody getting past me ÃÂ°ÃÂÃÂÃÂ #1v1 #db'",
+        "Film yourself shutting down a WR route for route ÃÂ¢ÃÂÃÂ voiceover explaining your read at each step",
         "React to a viral 1v1 clip then show your version of the same matchup",
         "Press coverage tutorial: 3 different WR releases, how you handle each one",
-        "'Can you guard me?' challenge Ã¢ÂÂ invite a WR friend, film the whole session raw",
+        "'Can you guard me?' challenge ÃÂ¢ÃÂÃÂ invite a WR friend, film the whole session raw",
     ],
     "drills": [
-        "4 drills every DB should do before practice Ã¢ÂÂ list format, each drill 5 seconds",
-        "The ONE drill that fixed my backpedal Ã¢ÂÂ before/after clip",
-        "Morning drill routine from zero Ã¢ÂÂ film your actual warmup start to finish",
+        "4 drills every DB should do before practice ÃÂ¢ÃÂÃÂ list format, each drill 5 seconds",
+        "The ONE drill that fixed my backpedal ÃÂ¢ÃÂÃÂ before/after clip",
+        "Morning drill routine from zero ÃÂ¢ÃÂÃÂ film your actual warmup start to finish",
         "Breakdown: how to mirror a WR's hips on a double move (slow-mo + voiceover)",
-        "'DB Fundamentals Day [X]' series Ã¢ÂÂ one technique per video, consistent format",
+        "'DB Fundamentals Day [X]' series ÃÂ¢ÃÂÃÂ one technique per video, consistent format",
     ],
     "workout": [
-        "Speed workout that adds 0.2 seconds to your 40 Ã¢ÂÂ 3 exercises, film each one",
-        "DB combine prep workout Ã¢ÂÂ show exactly what you do 8 weeks out",
+        "Speed workout that adds 0.2 seconds to your 40 ÃÂ¢ÃÂÃÂ 3 exercises, film each one",
+        "DB combine prep workout ÃÂ¢ÃÂÃÂ show exactly what you do 8 weeks out",
         "Gym session focused on explosion: box jumps, hip thrusts, band work",
-        "The workout nobody talks about for DBs Ã¢ÂÂ hip flexibility and change of direction",
-        "Morning vs night workout routine Ã¢ÂÂ film both, show the difference in energy",
+        "The workout nobody talks about for DBs ÃÂ¢ÃÂÃÂ hip flexibility and change of direction",
+        "Morning vs night workout routine ÃÂ¢ÃÂÃÂ film both, show the difference in energy",
     ],
     "motivation": [
         "Voiceover on outdoor training: 'This is what the offseason looks like when you want it'",
-        "'Nobody is outworking me this offseason' Ã¢ÂÂ raw training clips, no music just sounds",
+        "'Nobody is outworking me this offseason' ÃÂ¢ÃÂÃÂ raw training clips, no music just sounds",
         "Show a rejection or setback + what you did the next morning (authentic story)",
-        "Day in the life: 5AM to 10PM grind day Ã¢ÂÂ full vlog style",
-        "'I train like this so game day feels easy' Ã¢ÂÂ connect your drills to real game situations",
+        "Day in the life: 5AM to 10PM grind day ÃÂ¢ÃÂÃÂ full vlog style",
+        "'I train like this so game day feels easy' ÃÂ¢ÃÂÃÂ connect your drills to real game situations",
     ]
 }
 
-# Ã¢ÂÂÃ¢ÂÂ APIFY HELPERS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
-def run_actor(actor_id, input_data, timeout=120):
+# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ APIFY HELPERS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+def run_actor(actor_id, input_data, timeout=240):
+    """Run Apify actor and return dataset items. Verbose debug logging."""
     try:
-        actor_slug = actor_id.replace("/", "~")  # CRITICAL: API requires ~ not /
+        if not APIFY_TOKEN:
+            print("  [ERROR] APIFY_TOKEN is not set!")
+            return []
+        actor_slug = actor_id.replace("/", "~")
+        print(f"  [DEBUG] Starting {actor_slug} input={input_data}")
         resp = requests.post(
             f"{APIFY_BASE}/acts/{actor_slug}/runs",
             params={"token": APIFY_TOKEN},
             json=input_data,
             timeout=30
         )
-        resp.raise_for_status()
-        run_id    = resp.json()["data"]["id"]
-        dataset_id = resp.json()["data"]["defaultDatasetId"]
+        print(f"  [DEBUG] Actor start HTTP {resp.status_code}")
+        if not resp.ok:
+            print(f"  [ERROR] Start failed: {resp.text[:300]}")
+            return []
+        run_data   = resp.json()["data"]
+        run_id     = run_data["id"]
+        dataset_id = run_data["defaultDatasetId"]
+        print(f"  [DEBUG] Run ID={run_id} dataset={dataset_id}")
 
         deadline = time.time() + timeout
         status   = "RUNNING"
@@ -109,27 +119,49 @@ def run_actor(actor_id, input_data, timeout=120):
                 params={"token": APIFY_TOKEN},
                 timeout=15
             )
+            if not sr.ok:
+                print(f"  [WARN] Poll HTTP {sr.status_code}")
+                time.sleep(10)
+                continue
             status = sr.json()["data"]["status"]
+            usage  = sr.json()["data"].get("usageTotalUsd", "?")
+            print(f"  [DEBUG] status={status} usd={usage}")
             if status in ("SUCCEEDED", "FAILED", "ABORTED", "TIMED-OUT"):
                 break
-            time.sleep(8)
+            time.sleep(10)
 
         if status != "SUCCEEDED":
-            print(f"  [WARN] {actor_id} Ã¢ÂÂ {status}")
+            print(f"  [WARN] {actor_id} ended with status={status}")
             return []
 
-        items = requests.get(
+        items_resp = requests.get(
             f"{APIFY_BASE}/datasets/{dataset_id}/items",
-            params={"token": APIFY_TOKEN, "clean": "true"},
+            params={"token": APIFY_TOKEN, "clean": "true", "limit": 500},
             timeout=30
         )
-        return items.json() if items.ok else []
+        print(f"  [DEBUG] Dataset HTTP {items_resp.status_code}")
+        if not items_resp.ok:
+            print(f"  [ERROR] Dataset failed: {items_resp.text[:200]}")
+            return []
+        items = items_resp.json()
+        print(f"  [DEBUG] Got {len(items)} items from dataset")
+        return items
     except Exception as e:
         print(f"  [ERROR] {actor_id}: {e}")
         return []
 
 
-# Ã¢ÂÂÃ¢ÂÂ SCORING Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+def fetch_all_raw():
+    """Single actor call — 5 hashtags x 10 results = ~50 items. Stays in free tier."""
+    print("  Fetching TikTok data (single actor call)...")
+    return run_actor("clockworks/tiktok-hashtag-scraper", {
+        "hashtags": ["footballtraining", "dbtraining", "cornerback", "1v1football", "footballdrills"],
+        "resultsPerPage": 10,
+        "shouldDownloadCovers": False,
+        "shouldDownloadVideos": False,
+    }, timeout=240)
+
+
 def score_sound(sound):
     """Score a sound for football/workout relevance. Returns (score 0-10, category)."""
     score = 0
@@ -183,13 +215,10 @@ def get_pillar(text):
     return None
 
 
-# Ã¢ÂÂÃ¢ÂÂ DATA FETCHERS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
-def fetch_trending_sounds():
-    """Extract trending sounds from hashtag videos — no paid actor needed."""
-    print("  Fetching trending sounds from hashtag videos…")
-    raw = run_actor("clockworks/tiktok-hashtag-scraper", {
-        "hashtags": HASHTAGS[:8], "resultsPerPage": 30
-    }, timeout=180)
+# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ DATA FETCHERS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+def fetch_trending_sounds(raw):
+    """Extract trending sounds from pre-fetched hashtag video results."""
+    print("  Parsing trending soundsâ¦")
 
     sound_counts = {}
     for item in raw:
@@ -235,13 +264,9 @@ def fetch_trending_sounds():
     return sounds[:15]
 
 
-def fetch_creator_spy():
-    """Find emerging creators from hashtag videos â no paid actor needed."""
-    print("  Running Creator Spyâ¦")
-    raw = run_actor("clockworks/tiktok-hashtag-scraper", {
-        "hashtags": ["dbtraining","cornerback","defensiveback","1v1football","footballworkout","footballdrills"],
-        "resultsPerPage": 30
-    }, timeout=180)
+def fetch_creator_spy(raw):
+    """Find emerging creators from pre-fetched hashtag video results."""
+    print("  Parsing creator dataÃ¢ÂÂ¦")
 
     seen_handles = set()
     creator_map  = {}
@@ -267,14 +292,14 @@ def fetch_creator_spy():
 
         viral_reason = ""
         if plays > 500_000:
-            viral_reason = "ð¥ Mega viral â massive reach"
+            viral_reason = "Ã°ÂÂÂ¥ Mega viral Ã¢ÂÂ massive reach"
         elif plays > 100_000:
             if shares > likes * 0.05:
-                viral_reason = "â¡ High share rate â relatable/shareable content"
+                viral_reason = "Ã¢ÂÂ¡ High share rate Ã¢ÂÂ relatable/shareable content"
             elif saves > likes * 0.1:
-                viral_reason = "ð High saves â educational/reference value"
+                viral_reason = "Ã°ÂÂÂ High saves Ã¢ÂÂ educational/reference value"
             else:
-                viral_reason = "ð Strong engagement â good hook/timing"
+                viral_reason = "Ã°ÂÂÂ Strong engagement Ã¢ÂÂ good hook/timing"
 
         if handle not in creator_map:
             size = "small" if fans < 50_000 else "mid"
@@ -293,11 +318,8 @@ def fetch_creator_spy():
     results = sorted(creator_map.values(), key=lambda c: max((v["plays"] for v in c["videos"]), default=0), reverse=True)
     return results[:15]
 
-def fetch_hashtags():
-    print("  Scanning hashtagsÃ¢ÂÂ¦")
-    raw = run_actor("clockworks/tiktok-hashtag-scraper", {
-        "hashtags": HASHTAGS[:6], "resultsPerPage": 20
-    }, timeout=120)
+def fetch_hashtags(raw):
+    print("  Parsing hashtag dataÃÂ¢ÃÂÃÂ¦")
 
     # Collect top videos per hashtag + trending sounds used
     tag_data   = {}
@@ -341,7 +363,7 @@ def fetch_hashtags():
     return tags_sorted[:10], top_videos[:6]
 
 
-# Ã¢ÂÂÃ¢ÂÂ VIDEO IDEA GENERATOR Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ VIDEO IDEA GENERATOR ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 def generate_video_ideas(sounds, creators, top_videos):
     ideas       = []
     hot_pillars = {}
@@ -364,9 +386,9 @@ def generate_video_ideas(sounds, creators, top_videos):
 
     for pillar, templates in IDEA_TEMPLATES.items():
         template   = random.choice(templates)
-        priority   = "Ã°ÂÂÂ¥ HOT" if hot_pillars.get(pillar, 0) > 0 else "Ã°ÂÂÂ"
+        priority   = "ÃÂ°ÃÂÃÂÃÂ¥ HOT" if hot_pillars.get(pillar, 0) > 0 else "ÃÂ°ÃÂÃÂÃÂ"
         inspo      = next((v for v in viral_inspo if v["pillar"] == pillar), None)
-        inspo_note = f" (inspired by @{inspo['handle']} Ã¢ÂÂ {inspo['plays']:,} plays)" if inspo else ""
+        inspo_note = f" (inspired by @{inspo['handle']} ÃÂ¢ÃÂÃÂ {inspo['plays']:,} plays)" if inspo else ""
 
         ideas.append({
             "pillar":    pillar.upper(),
@@ -381,8 +403,8 @@ def generate_video_ideas(sounds, creators, top_videos):
     for v in viral_inspo[:2]:
         ideas.append({
             "pillar":    "TREND HIJACK",
-            "priority":  "Ã¢ÂÂ¡ URGENT",
-            "idea":      f"@{v['handle']} just got {v['plays']:,} plays on: '{v['desc'][:50]}' Ã¢ÂÂ post YOUR version before it peaks",
+            "priority":  "ÃÂ¢ÃÂÃÂ¡ URGENT",
+            "idea":      f"@{v['handle']} just got {v['plays']:,} plays on: '{v['desc'][:50]}' ÃÂ¢ÃÂÃÂ post YOUR version before it peaks",
             "sound":     top_sound,
             "hashtags":  "#footballtraining #db #cornerback",
             "inspo":     "",
@@ -392,7 +414,7 @@ def generate_video_ideas(sounds, creators, top_videos):
     return ideas
 
 
-# Ã¢ÂÂÃ¢ÂÂ EMAIL CSS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ EMAIL CSS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 def email_style():
     return """
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
@@ -412,26 +434,26 @@ def email_style():
     .divider{border:none;border-top:1px solid #1e2028;margin:12px 0;}
     """
 
-# Ã¢ÂÂÃ¢ÂÂ SOUND COLOR Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ SOUND COLOR ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 def sound_tag(cat, score):
     if cat == "football":
-        return f'<span class="tag tag-green">Ã°ÂÂÂ FOOTBALL ÃÂ· {score}/10</span>'
+        return f'<span class="tag tag-green">ÃÂ°ÃÂÃÂÃÂ FOOTBALL ÃÂÃÂ· {score}/10</span>'
     elif cat == "workout":
-        return f'<span class="tag tag-yellow">Ã°ÂÂÂª WORKOUT ÃÂ· {score}/10</span>'
+        return f'<span class="tag tag-yellow">ÃÂ°ÃÂÃÂÃÂª WORKOUT ÃÂÃÂ· {score}/10</span>'
     elif cat == "sport":
-        return f'<span class="tag tag-blue">Ã°ÂÂÂ SPORT ÃÂ· {score}/10</span>'
+        return f'<span class="tag tag-blue">ÃÂ°ÃÂÃÂÃÂ SPORT ÃÂÃÂ· {score}/10</span>'
     else:
-        return f'<span class="tag tag-gray">Ã°ÂÂÂµ GENERAL ÃÂ· {score}/10</span>'
+        return f'<span class="tag tag-gray">ÃÂ°ÃÂÃÂÃÂµ GENERAL ÃÂÃÂ· {score}/10</span>'
 
 
-# Ã¢ÂÂÃ¢ÂÂ EMAIL BUILDERS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ EMAIL BUILDERS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
-    top = sounds[0] if sounds else {"title": "Ã¢ÂÂ", "link": ""}
+    top = sounds[0] if sounds else {"title": "ÃÂ¢ÃÂÃÂ", "link": ""}
 
-    # Ã¢ÂÂÃ¢ÂÂ SOUNDS Ã¢ÂÂÃ¢ÂÂ
+    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ SOUNDS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     sound_rows = ""
     for i, s in enumerate(sounds[:10], 1):
-        rising_badge = ' <span class="tag tag-green" style="font-size:9px;">Ã¢ÂÂ² RISING</span>' if s["rising"] else ""
+        rising_badge = ' <span class="tag tag-green" style="font-size:9px;">ÃÂ¢ÃÂÃÂ² RISING</span>' if s["rising"] else ""
         link_open  = f'<a href="{s["link"]}" style="color:#e8e8e8;">' if s["link"] else ""
         link_close = "</a>" if s["link"] else ""
         sound_rows += f"""
@@ -439,17 +461,17 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
           {'<img src="' + s['cover'] + '" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;" />' if s.get('cover') else '<div style="width:40px;height:40px;border-radius:8px;background:#1e2028;flex-shrink:0;"></div>'}
           <div style="flex:1;min-width:0;">
             <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{link_open}#{i} {s['title']}{link_close}{rising_badge}</div>
-            <div class="stat" style="margin-top:2px;">{s['author']} &nbsp;ÃÂ·&nbsp; Rank #{s['rank']}</div>
+            <div class="stat" style="margin-top:2px;">{s['author']} &nbsp;ÃÂÃÂ·&nbsp; Rank #{s['rank']}</div>
           </div>
           <div style="flex-shrink:0;">{sound_tag(s['category'], s['score'])}</div>
         </div>"""
 
-    # Ã¢ÂÂÃ¢ÂÂ CREATORS Ã¢ÂÂÃ¢ÂÂ
+    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ CREATORS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     creator_html = ""
     # Sort: small first (emphasize emerging), large last
     sorted_creators = sorted(creators, key=lambda c: {"small":0,"mid":1,"large":2}.get(c["size"],1))
     for c in sorted_creators:
-        size_icons = {"small": "Ã°ÂÂÂ± EMERGING", "mid": "Ã°ÂÂÂ MID-TIER", "large": "Ã¢ÂÂ¡ LARGE"}
+        size_icons = {"small": "ÃÂ°ÃÂÃÂÃÂ± EMERGING", "mid": "ÃÂ°ÃÂÃÂÃÂ MID-TIER", "large": "ÃÂ¢ÃÂÃÂ¡ LARGE"}
         size_label = size_icons.get(c["size"], "")
         size_color = {"small": "#4ade80", "mid": "#fbbf24", "large": "#60a5fa"}.get(c["size"], "#888")
         viral_vids = [v for v in c["videos"] if v["viral"]]
@@ -461,7 +483,7 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
               <span style="font-weight:700;font-size:14px;">@{c['handle']}</span>
               <span style="font-size:10px;color:{size_color};margin-left:8px;font-weight:700;">{size_label}</span>
             </div>
-            {'<span class="tag tag-red">Ã°ÂÂÂ¥ VIRAL</span>' if viral_vids else ''}
+            {'<span class="tag tag-red">ÃÂ°ÃÂÃÂÃÂ¥ VIRAL</span>' if viral_vids else ''}
           </div>"""
 
         if not c["videos"]:
@@ -469,7 +491,7 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
         else:
             for v in c["videos"][:3]:
                 pillar_tag = f'<span class="tag tag-green" style="font-size:9px;">{v["pillar"].upper()}</span> ' if v["pillar"] else ""
-                watch_btn  = f'<a href="{v["url"]}" style="display:inline-block;padding:4px 10px;background:#1e2028;border-radius:6px;font-size:10px;color:#60a5fa;font-weight:600;margin-top:6px;">Ã¢ÂÂ¶ Watch on TikTok</a>' if v["url"] else ""
+                watch_btn  = f'<a href="{v["url"]}" style="display:inline-block;padding:4px 10px;background:#1e2028;border-radius:6px;font-size:10px;color:#60a5fa;font-weight:600;margin-top:6px;">ÃÂ¢ÃÂÃÂ¶ Watch on TikTok</a>' if v["url"] else ""
                 viral_why  = f'<div style="font-size:10px;color:#fbbf24;margin-top:3px;">{v["viral_reason"]}</div>' if v["viral_reason"] else ""
                 thumb_html = f'<img src="{v["thumb"]}" style="width:52px;height:70px;border-radius:6px;object-fit:cover;flex-shrink:0;" />' if v["thumb"] else ""
 
@@ -478,49 +500,49 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
                   {thumb_html}
                   <div style="flex:1;min-width:0;">
                     <div style="font-size:11px;color:#bbb;margin-bottom:4px;line-height:1.4;">{pillar_tag}{v['desc'] or '(no caption)'}</div>
-                    <div class="stat"><strong style="color:#4ade80;">{v['plays']:,} plays</strong> ÃÂ· {v['likes']:,} likes ÃÂ· {v['saves']:,} saves</div>
-                    {f'<div class="stat" style="margin-top:2px;">Ã°ÂÂÂµ {v["sound"]}</div>' if v["sound"] else ""}
+                    <div class="stat"><strong style="color:#4ade80;">{v['plays']:,} plays</strong> ÃÂÃÂ· {v['likes']:,} likes ÃÂÃÂ· {v['saves']:,} saves</div>
+                    {f'<div class="stat" style="margin-top:2px;">ÃÂ°ÃÂÃÂÃÂµ {v["sound"]}</div>' if v["sound"] else ""}
                     {viral_why}
                     {watch_btn}
                   </div>
                 </div>"""
         creator_html += "</div>"
 
-    # Ã¢ÂÂÃ¢ÂÂ HASHTAGS Ã¢ÂÂÃ¢ÂÂ
+    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ HASHTAGS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     ht_html = ""
     for tag, data in tags[:8]:
         views = data["views"]
         views_fmt = f"{views/1_000_000_000:.1f}B" if views >= 1e9 else f"{views/1_000_000:.0f}M" if views >= 1e6 else f"{views:,}"
         ht_html += f'<span style="background:#0a1a2e;color:#60a5fa;padding:5px 12px;border-radius:20px;margin:3px;display:inline-block;font-size:12px;font-weight:600;">#{tag} <span style="color:#2563eb;font-size:10px;">{views_fmt} views</span></span>'
 
-    # Ã¢ÂÂÃ¢ÂÂ TOP HASHTAG VIDEOS Ã¢ÂÂÃ¢ÂÂ
+    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ TOP HASHTAG VIDEOS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     ht_videos_html = ""
     for v in top_videos[:4]:
         thumb_html = f'<img src="{v["thumb"]}" style="width:48px;height:64px;border-radius:6px;object-fit:cover;flex-shrink:0;" />' if v["thumb"] else ""
-        watch_btn  = f'<a href="{v["url"]}" style="display:inline-block;padding:3px 8px;background:#1e2028;border-radius:5px;font-size:10px;color:#60a5fa;font-weight:600;">Ã¢ÂÂ¶ Watch</a>' if v["url"] else ""
+        watch_btn  = f'<a href="{v["url"]}" style="display:inline-block;padding:3px 8px;background:#1e2028;border-radius:5px;font-size:10px;color:#60a5fa;font-weight:600;">ÃÂ¢ÃÂÃÂ¶ Watch</a>' if v["url"] else ""
         fans_fmt   = f"{v['fans']/1000:.0f}K" if v["fans"] >= 1000 else str(v["fans"])
         ht_videos_html += f"""
         <div style="display:flex;gap:10px;margin-bottom:10px;background:#0d0f14;border-radius:8px;padding:8px;">
           {thumb_html}
           <div style="flex:1;min-width:0;">
-            <div style="font-size:11px;color:#bbb;margin-bottom:4px;">#{v['tag']} ÃÂ· @{v['author']} ({fans_fmt} followers)</div>
+            <div style="font-size:11px;color:#bbb;margin-bottom:4px;">#{v['tag']} ÃÂÃÂ· @{v['author']} ({fans_fmt} followers)</div>
             <div style="font-size:12px;color:#e8e8e8;margin-bottom:4px;line-height:1.4;">{v['desc']}</div>
-            <div class="stat"><strong style="color:#4ade80;">{v['plays']:,} plays</strong> ÃÂ· {v['shares']:,} shares</div>
-            {f'<div class="stat">Ã°ÂÂÂµ {v["sound"]}</div>' if v["sound"] else ""}
+            <div class="stat"><strong style="color:#4ade80;">{v['plays']:,} plays</strong> ÃÂÃÂ· {v['shares']:,} shares</div>
+            {f'<div class="stat">ÃÂ°ÃÂÃÂÃÂµ {v["sound"]}</div>' if v["sound"] else ""}
             {watch_btn}
           </div>
         </div>"""
 
-    # Ã¢ÂÂÃ¢ÂÂ VIDEO IDEAS Ã¢ÂÂÃ¢ÂÂ
+    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ VIDEO IDEAS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     ideas_html = ""
     for idea in ideas:
         p_color = "#f87171" if "URGENT" in idea["priority"] else "#fbbf24" if "HOT" in idea["priority"] else "#666"
-        inspo_link = f' <a href="{idea["inspo_url"]}" style="color:#60a5fa;font-size:10px;">Ã¢ÂÂ¶ Watch inspo</a>' if idea.get("inspo_url") else ""
+        inspo_link = f' <a href="{idea["inspo_url"]}" style="color:#60a5fa;font-size:10px;">ÃÂ¢ÃÂÃÂ¶ Watch inspo</a>' if idea.get("inspo_url") else ""
         ideas_html += f"""
         <div style="border-left:3px solid {p_color};padding:10px 14px;margin-bottom:10px;background:#0d0f14;border-radius:0 8px 8px 0;">
-          <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;letter-spacing:.5px;">{idea['priority']} ÃÂ· {idea['pillar']}{idea['inspo']}{inspo_link}</div>
+          <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;letter-spacing:.5px;">{idea['priority']} ÃÂÃÂ· {idea['pillar']}{idea['inspo']}{inspo_link}</div>
           <div style="font-size:13px;color:#e8e8e8;margin-bottom:6px;line-height:1.5;">{idea['idea']}</div>
-          <div style="font-size:10px;color:#555;">Ã°ÂÂÂµ Use: <strong style="color:#888;">{idea['sound']}</strong> &nbsp;ÃÂ·&nbsp; {idea['hashtags']}</div>
+          <div style="font-size:10px;color:#555;">ÃÂ°ÃÂÃÂÃÂµ Use: <strong style="color:#888;">{idea['sound']}</strong> &nbsp;ÃÂÃÂ·&nbsp; {idea['hashtags']}</div>
         </div>"""
 
     top_sound_link = f'<a href="{top["link"]}" style="color:#4ade80;text-decoration:underline;">"{top["title"]}"</a>' if top.get("link") else f'"{top["title"]}"'
@@ -529,42 +551,42 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
 <html><head><meta charset="utf-8"><style>{email_style()}</style></head><body>
 
 <div style="background:linear-gradient(135deg,#0d1117,#161b22);border-radius:16px;padding:24px;margin-bottom:14px;text-align:center;border:1px solid #21262d;">
-  <div style="font-size:40px;margin-bottom:8px;">Ã°ÂÂÂ</div>
+  <div style="font-size:40px;margin-bottom:8px;">ÃÂ°ÃÂÃÂÃÂ</div>
   <h1 style="font-size:22px;font-weight:900;color:#fff;margin-bottom:4px;">Good Morning, Joshua</h1>
-  <p style="color:#666;font-size:13px;">6AM Football Trend Brief &nbsp;ÃÂ·&nbsp; {date_str}</p>
+  <p style="color:#666;font-size:13px;">6AM Football Trend Brief &nbsp;ÃÂÃÂ·&nbsp; {date_str}</p>
 </div>
 
 <div style="background:#0a1f0a;border:1px solid #166534;border-radius:12px;padding:18px;margin-bottom:14px;">
-  <h2 style="color:#4ade80;">Ã¢ÂÂ¡ Your Move Today</h2>
+  <h2 style="color:#4ade80;">ÃÂ¢ÃÂÃÂ¡ Your Move Today</h2>
   <p style="font-size:14px;margin-bottom:8px;line-height:1.6;"><strong>Hottest sound right now:</strong> {top_sound_link}</p>
   <p style="font-size:13px;color:#bbb;line-height:1.6;"><strong style="color:#fff;">Post idea:</strong> Film a DB press coverage drill. Name a specific WR or school you're preparing for in the caption.</p>
-  <p style="font-size:12px;color:#555;margin-top:8px;">Ã°ÂÂÂ Best posting window: 6Ã¢ÂÂ9PM ET tonight</p>
+  <p style="font-size:12px;color:#555;margin-top:8px;">ÃÂ°ÃÂÃÂÃÂ Best posting window: 6ÃÂ¢ÃÂÃÂ9PM ET tonight</p>
 </div>
 
 <div class="card">
-  <h2>Ã°ÂÂÂ¯ Video Ideas For Today</h2>
+  <h2>ÃÂ°ÃÂÃÂÃÂ¯ Video Ideas For Today</h2>
   {ideas_html}
 </div>
 
 <div class="card">
-  <h2>Ã°ÂÂÂµ Trending Sounds Ã¢ÂÂ Color Coded For You</h2>
-  <div style="font-size:10px;color:#555;margin-bottom:10px;">Ã°ÂÂÂ¢ Football/DB &nbsp;ÃÂ·&nbsp; Ã°ÂÂÂ¡ Workout/Hype &nbsp;ÃÂ·&nbsp; Ã°ÂÂÂµ Sport &nbsp;ÃÂ·&nbsp; Ã¢ÂÂª General</div>
+  <h2>ÃÂ°ÃÂÃÂÃÂµ Trending Sounds ÃÂ¢ÃÂÃÂ Color Coded For You</h2>
+  <div style="font-size:10px;color:#555;margin-bottom:10px;">ÃÂ°ÃÂÃÂÃÂ¢ Football/DB &nbsp;ÃÂÃÂ·&nbsp; ÃÂ°ÃÂÃÂÃÂ¡ Workout/Hype &nbsp;ÃÂÃÂ·&nbsp; ÃÂ°ÃÂÃÂÃÂµ Sport &nbsp;ÃÂÃÂ·&nbsp; ÃÂ¢ÃÂÃÂª General</div>
   {sound_rows}
 </div>
 
 <div class="card">
-  <h2>Ã°ÂÂÂÃ¯Â¸Â Creator Spy</h2>
-  <div style="font-size:11px;color:#555;margin-bottom:12px;">Ã°ÂÂÂ± Emerging creators first ÃÂ· Ã¢ÂÂ¡ Large shown last for reference</div>
+  <h2>ÃÂ°ÃÂÃÂÃÂÃÂ¯ÃÂ¸ÃÂ Creator Spy</h2>
+  <div style="font-size:11px;color:#555;margin-bottom:12px;">ÃÂ°ÃÂÃÂÃÂ± Emerging creators first ÃÂÃÂ· ÃÂ¢ÃÂÃÂ¡ Large shown last for reference</div>
   {creator_html}
 </div>
 
 <div class="card">
-  <h2>Ã°ÂÂÂ·Ã¯Â¸Â Trending Hashtags</h2>
+  <h2>ÃÂ°ÃÂÃÂÃÂ·ÃÂ¯ÃÂ¸ÃÂ Trending Hashtags</h2>
   {ht_html}
-  {('<hr class="divider"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;">Ã°ÂÂÂ¥ Top Videos Under These Hashtags</div>' + ht_videos_html) if ht_videos_html else ""}
+  {('<hr class="divider"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;">ÃÂ°ÃÂÃÂÃÂ¥ Top Videos Under These Hashtags</div>' + ht_videos_html) if ht_videos_html else ""}
 </div>
 
-<p style="text-align:center;font-size:10px;color:#333;padding:16px 0;">Football Trend Agent &nbsp;ÃÂ·&nbsp; 6AM Brief &nbsp;ÃÂ·&nbsp; therealjoshjames22@gmail.com</p>
+<p style="text-align:center;font-size:10px;color:#333;padding:16px 0;">Football Trend Agent &nbsp;ÃÂÃÂ·&nbsp; 6AM Brief &nbsp;ÃÂÃÂ·&nbsp; therealjoshjames22@gmail.com</p>
 </body></html>"""
     return html
 
@@ -575,10 +597,10 @@ def build_afternoon_email(sounds, creators, top_videos, ideas, date_str):
 
     viral_html = ""
     for v in new_viral[:5]:
-        watch_btn = f'<a href="{v["url"]}" style="display:inline-block;padding:3px 8px;background:#1e2028;border-radius:5px;font-size:10px;color:#60a5fa;font-weight:600;margin-top:4px;">Ã¢ÂÂ¶ Watch on TikTok</a>' if v["url"] else ""
+        watch_btn = f'<a href="{v["url"]}" style="display:inline-block;padding:3px 8px;background:#1e2028;border-radius:5px;font-size:10px;color:#60a5fa;font-weight:600;margin-top:4px;">ÃÂ¢ÃÂÃÂ¶ Watch on TikTok</a>' if v["url"] else ""
         viral_html += f"""
         <div style="padding:10px 0;border-bottom:1px solid #1e2028;">
-          <div style="font-size:13px;"><strong style="color:#4ade80;">{v['plays']:,} plays</strong> Ã¢ÂÂ {v['desc'][:70]}</div>
+          <div style="font-size:13px;"><strong style="color:#4ade80;">{v['plays']:,} plays</strong> ÃÂ¢ÃÂÃÂ {v['desc'][:70]}</div>
           {f'<div class="stat" style="margin-top:2px;">{v["viral_reason"]}</div>' if v["viral_reason"] else ""}
           {watch_btn}
         </div>"""
@@ -588,44 +610,44 @@ def build_afternoon_email(sounds, creators, top_videos, ideas, date_str):
     ideas_html = ""
     for idea in (urgent or ideas[:3]):
         p_color = "#f87171" if "URGENT" in idea["priority"] else "#fbbf24"
-        inspo_link = f' <a href="{idea["inspo_url"]}" style="color:#60a5fa;font-size:10px;">Ã¢ÂÂ¶ Watch inspo</a>' if idea.get("inspo_url") else ""
+        inspo_link = f' <a href="{idea["inspo_url"]}" style="color:#60a5fa;font-size:10px;">ÃÂ¢ÃÂÃÂ¶ Watch inspo</a>' if idea.get("inspo_url") else ""
         ideas_html += f"""
         <div style="border-left:3px solid {p_color};padding:10px 14px;margin-bottom:10px;background:#0d0f14;border-radius:0 8px 8px 0;">
-          <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;">{idea['priority']} ÃÂ· {idea['pillar']}{inspo_link}</div>
+          <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;">{idea['priority']} ÃÂÃÂ· {idea['pillar']}{inspo_link}</div>
           <div style="font-size:13px;color:#e8e8e8;margin-bottom:4px;">{idea['idea']}</div>
-          <div style="font-size:10px;color:#555;">Ã°ÂÂÂµ {idea['sound']}</div>
+          <div style="font-size:10px;color:#555;">ÃÂ°ÃÂÃÂÃÂµ {idea['sound']}</div>
         </div>"""
 
     html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>{email_style()}</style></head><body>
 <div style="background:linear-gradient(135deg,#0d1a0d,#162416);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;border:1px solid #166534;">
-  <div style="font-size:32px;margin-bottom:6px;">Ã°ÂÂÂ</div>
+  <div style="font-size:32px;margin-bottom:6px;">ÃÂ°ÃÂÃÂÃÂ</div>
   <h1 style="font-size:20px;font-weight:900;color:#fff;">Afternoon Update</h1>
-  <p style="color:#555;font-size:12px;">2PM Trend Check &nbsp;ÃÂ·&nbsp; {date_str}</p>
+  <p style="color:#555;font-size:12px;">2PM Trend Check &nbsp;ÃÂÃÂ·&nbsp; {date_str}</p>
 </div>
 <div class="card">
-  <h2>Ã°ÂÂÂ¥ Viral Right Now Ã¢ÂÂ Post Before It Peaks</h2>
+  <h2>ÃÂ°ÃÂÃÂÃÂ¥ Viral Right Now ÃÂ¢ÃÂÃÂ Post Before It Peaks</h2>
   {viral_html}
 </div>
 <div class="card">
-  <h2>Ã°ÂÂÂ¯ Top Ideas This Afternoon</h2>
+  <h2>ÃÂ°ÃÂÃÂÃÂ¯ Top Ideas This Afternoon</h2>
   {ideas_html}
 </div>
-<p style="text-align:center;font-size:10px;color:#333;padding:16px 0;">Football Trend Agent &nbsp;ÃÂ·&nbsp; 2PM Brief &nbsp;ÃÂ·&nbsp; therealjoshjames22@gmail.com</p>
+<p style="text-align:center;font-size:10px;color:#333;padding:16px 0;">Football Trend Agent &nbsp;ÃÂÃÂ·&nbsp; 2PM Brief &nbsp;ÃÂÃÂ·&nbsp; therealjoshjames22@gmail.com</p>
 </body></html>"""
     return html
 
 
 def build_night_email(sounds, creators, ideas, date_str):
     viral_today  = [v for c in creators for v in c["videos"] if v["viral"]]
-    top_sound    = sounds[0] if sounds else {"title": "Ã¢ÂÂ", "link": ""}
+    top_sound    = sounds[0] if sounds else {"title": "ÃÂ¢ÃÂÃÂ", "link": ""}
 
     recap_html = ""
     for v in viral_today[:5]:
-        watch_btn = f'<a href="{v["url"]}" style="display:inline-block;padding:3px 8px;background:#1e2028;border-radius:5px;font-size:10px;color:#60a5fa;font-weight:600;margin-top:4px;">Ã¢ÂÂ¶ Watch</a>' if v["url"] else ""
+        watch_btn = f'<a href="{v["url"]}" style="display:inline-block;padding:3px 8px;background:#1e2028;border-radius:5px;font-size:10px;color:#60a5fa;font-weight:600;margin-top:4px;">ÃÂ¢ÃÂÃÂ¶ Watch</a>' if v["url"] else ""
         recap_html += f"""
         <div style="padding:10px 0;border-bottom:1px solid #1e2028;">
-          <div style="font-size:13px;"><strong style="color:#4ade80;">{v['plays']:,} plays</strong> Ã¢ÂÂ {v['desc'][:70]}</div>
+          <div style="font-size:13px;"><strong style="color:#4ade80;">{v['plays']:,} plays</strong> ÃÂ¢ÃÂÃÂ {v['desc'][:70]}</div>
           {watch_btn}
         </div>"""
     if not recap_html:
@@ -637,7 +659,7 @@ def build_night_email(sounds, creators, ideas, date_str):
         <div style="border-left:3px solid #60a5fa;padding:10px 14px;margin-bottom:10px;background:#0d0f14;border-radius:0 8px 8px 0;">
           <div style="font-size:10px;font-weight:700;color:#60a5fa;margin-bottom:4px;letter-spacing:.5px;">{idea['pillar']}</div>
           <div style="font-size:13px;color:#e8e8e8;margin-bottom:4px;">{idea['idea']}</div>
-          <div style="font-size:10px;color:#555;">Ã°ÂÂÂµ {idea['sound']} &nbsp;ÃÂ·&nbsp; {idea['hashtags']}</div>
+          <div style="font-size:10px;color:#555;">ÃÂ°ÃÂÃÂÃÂµ {idea['sound']} &nbsp;ÃÂÃÂ·&nbsp; {idea['hashtags']}</div>
         </div>"""
 
     top_sound_link = f'<a href="{top_sound["link"]}" style="color:#4ade80;">{top_sound["title"]}</a>' if top_sound.get("link") else top_sound["title"]
@@ -645,31 +667,31 @@ def build_night_email(sounds, creators, ideas, date_str):
     html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>{email_style()}</style></head><body>
 <div style="background:linear-gradient(135deg,#0a0a14,#0f0f1e);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;border:1px solid #21262d;">
-  <div style="font-size:32px;margin-bottom:6px;">Ã°ÂÂÂ</div>
+  <div style="font-size:32px;margin-bottom:6px;">ÃÂ°ÃÂÃÂÃÂ</div>
   <h1 style="font-size:20px;font-weight:900;color:#fff;">Night Brief</h1>
-  <p style="color:#555;font-size:12px;">9PM Recap &nbsp;ÃÂ·&nbsp; {date_str}</p>
+  <p style="color:#555;font-size:12px;">9PM Recap &nbsp;ÃÂÃÂ·&nbsp; {date_str}</p>
 </div>
 <div class="card">
-  <h2>Ã°ÂÂÂ What Went Viral In Your Niche Today</h2>
+  <h2>ÃÂ°ÃÂÃÂÃÂ What Went Viral In Your Niche Today</h2>
   {recap_html}
 </div>
 <div class="card">
-  <h2>Ã°ÂÂÂÃ¯Â¸Â Tomorrow's Content Plan</h2>
+  <h2>ÃÂ°ÃÂÃÂÃÂÃÂ¯ÃÂ¸ÃÂ Tomorrow's Content Plan</h2>
   {tomorrow_html}
 </div>
 <div style="background:#0a1f0a;border:1px solid #166534;border-radius:12px;padding:16px;margin-bottom:14px;">
-  <h2 style="color:#4ade80;">Ã°ÂÂÂµ Use This Sound Tomorrow</h2>
-  <p style="font-size:14px;line-height:1.6;">{top_sound_link} Ã¢ÂÂ post with this first thing in the morning for max reach</p>
+  <h2 style="color:#4ade80;">ÃÂ°ÃÂÃÂÃÂµ Use This Sound Tomorrow</h2>
+  <p style="font-size:14px;line-height:1.6;">{top_sound_link} ÃÂ¢ÃÂÃÂ post with this first thing in the morning for max reach</p>
 </div>
-<p style="text-align:center;font-size:10px;color:#333;padding:16px 0;">Football Trend Agent &nbsp;ÃÂ·&nbsp; 9PM Brief &nbsp;ÃÂ·&nbsp; therealjoshjames22@gmail.com</p>
+<p style="text-align:center;font-size:10px;color:#333;padding:16px 0;">Football Trend Agent &nbsp;ÃÂÃÂ·&nbsp; 9PM Brief &nbsp;ÃÂÃÂ·&nbsp; therealjoshjames22@gmail.com</p>
 </body></html>"""
     return html
 
 
-# Ã¢ÂÂÃ¢ÂÂ EMAIL SENDER Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ EMAIL SENDER ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 def send_email(subject, html_body):
     if not EMAIL_PASSWORD:
-        print(f"[WARN] No EMAIL_PASSWORD Ã¢ÂÂ skipping send. Subject: {subject}")
+        print(f"[WARN] No EMAIL_PASSWORD ÃÂ¢ÃÂÃÂ skipping send. Subject: {subject}")
         return
     try:
         msg            = MIMEMultipart("alternative")
@@ -680,12 +702,12 @@ def send_email(subject, html_body):
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
             s.login(EMAIL_FROM, EMAIL_PASSWORD)
             s.sendmail(EMAIL_FROM, EMAIL_TO, msg.as_string())
-        print(f"[Ã¢ÂÂ] Email sent: {subject}")
+        print(f"[ÃÂ¢ÃÂÃÂ] Email sent: {subject}")
     except Exception as e:
         print(f"[ERROR] Email failed: {e}")
 
 
-# Ã¢ÂÂÃ¢ÂÂ WRITE DATA.JSON (dashboard reads this on load) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ WRITE DATA.JSON (dashboard reads this on load) ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 def write_data_json(sounds, creators, tags, top_videos, ideas):
     """Write fresh scan data to data.json so the dashboard is always current."""
     now = datetime.utcnow().isoformat() + "Z"
@@ -752,57 +774,69 @@ def write_data_json(sounds, creators, tags, top_videos, ideas):
 
     with open("data.json", "w") as f:
         json.dump(data, f, indent=2)
-    print(f"[Ã¢ÂÂ] data.json written Ã¢ÂÂ {len(sounds)} sounds, {len(creators)} creators, {len(breakouts)} breakouts")
+    print(f"[ÃÂ¢ÃÂÃÂ] data.json written ÃÂ¢ÃÂÃÂ {len(sounds)} sounds, {len(creators)} creators, {len(breakouts)} breakouts")
 
 
-# Ã¢ÂÂÃ¢ÂÂ MAIN Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ MAIN ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 def main():
     date_str = datetime.now().strftime("%A, %B %-d %Y")
     brief    = BRIEF_TYPE.lower()
 
     print(f"\n{'='*52}")
-    print(f"Football Trend Agent v3 Ã¢ÂÂ {brief.upper()} RUN")
+    print(f"Football Trend Agent v3 ÃÂ¢ÃÂÃÂ {brief.upper()} RUN")
     print(f"{date_str}")
     print(f"{'='*52}\n")
 
-    sounds         = fetch_trending_sounds()
-    creators       = fetch_creator_spy()
-    tags, top_videos = fetch_hashtags()
-    ideas          = generate_video_ideas(sounds, creators, top_videos)
+    # Afternoon/night reuse morning data to save Apify credits
+    if brief in ("afternoon", "night") and os.path.exists("data.json"):
+        print("  Reusing cached data.json (no new Apify call)...")
+        with open("data.json") as f:
+            cached = json.load(f)
+        sounds     = cached.get("sounds", [])
+        creators   = cached.get("creators", [])
+        tags       = cached.get("hashtags", [])
+        top_videos = cached.get("topVideos", [])
+        ideas      = cached.get("ideas", [])
+    else:
+        raw              = fetch_all_raw()
+        sounds           = fetch_trending_sounds(raw)
+        creators         = fetch_creator_spy(raw)
+        tags, top_videos = fetch_hashtags(raw)
+        ideas            = generate_video_ideas(sounds, creators, top_videos)
 
     print(f"\n  Sounds: {len(sounds)}  |  Creators: {len(creators)}  |  Tags: {len(tags)}  |  Top videos: {len(top_videos)}\n")
 
-    # Always write data.json Ã¢ÂÂ dashboard reads this on every load
+    # Always write data.json ÃÂ¢ÃÂÃÂ dashboard reads this on every load
     write_data_json(sounds, creators, tags, top_videos, ideas)
 
     # Send full email only on the 3 daily brief times
     if brief in ("morning", "afternoon", "night"):
         if brief == "morning":
             html    = build_morning_email(sounds, creators, tags, top_videos, ideas, date_str)
-            subject = f"Ã°ÂÂÂ Good Morning Joshua Ã¢ÂÂ Football Brief {date_str}"
+            subject = f"ÃÂ°ÃÂÃÂÃÂ Good Morning Joshua ÃÂ¢ÃÂÃÂ Football Brief {date_str}"
         elif brief == "afternoon":
             html    = build_afternoon_email(sounds, creators, top_videos, ideas, date_str)
-            subject = f"Ã°ÂÂÂ Afternoon Update Ã¢ÂÂ {date_str}"
+            subject = f"ÃÂ°ÃÂÃÂÃÂ Afternoon Update ÃÂ¢ÃÂÃÂ {date_str}"
         else:
             html    = build_night_email(sounds, creators, ideas, date_str)
-            subject = f"Ã°ÂÂÂ Night Brief Ã¢ÂÂ {date_str}"
+            subject = f"ÃÂ°ÃÂÃÂÃÂ Night Brief ÃÂ¢ÃÂÃÂ {date_str}"
         send_email(subject, html)
-        print("[Ã¢ÂÂ] Email sent.\n")
+        print("[ÃÂ¢ÃÂÃÂ] Email sent.\n")
     else:
-        # Hourly scan Ã¢ÂÂ only email if there's a breakout (50K+ views in last 6hrs)
+        # Hourly scan ÃÂ¢ÃÂÃÂ only email if there's a breakout (50K+ views in last 6hrs)
         if breakouts := json.load(open("data.json")).get("breakouts"):
             b = breakouts[0]
-            html = f"""<h2>Ã¢ÂÂ¡ BREAKOUT ALERT</h2>
+            html = f"""<h2>ÃÂ¢ÃÂÃÂ¡ BREAKOUT ALERT</h2>
             <p><strong>@{b['handle']}</strong> just hit <strong>{b['plays']:,} views</strong> in the last 6 hours.</p>
-            <p>Sound: Ã°ÂÂÂµ {b['sound']}</p>
+            <p>Sound: ÃÂ°ÃÂÃÂÃÂµ {b['sound']}</p>
             <p>Caption: {b['desc']}</p>
-            <p><a href="{b['url']}">Watch Video Ã¢ÂÂ</a></p>"""
-            send_email(f"Ã¢ÂÂ¡ BREAKOUT: @{b['handle']} Ã¢ÂÂ {b['plays']:,} views right now", html)
-            print(f"[Ã¢ÂÂ] Breakout alert sent for @{b['handle']}\n")
+            <p><a href="{b['url']}">Watch Video ÃÂ¢ÃÂÃÂ</a></p>"""
+            send_email(f"ÃÂ¢ÃÂÃÂ¡ BREAKOUT: @{b['handle']} ÃÂ¢ÃÂÃÂ {b['plays']:,} views right now", html)
+            print(f"[ÃÂ¢ÃÂÃÂ] Breakout alert sent for @{b['handle']}\n")
         else:
-            print("[Ã¢ÂÂ] Hourly scan complete. No breakouts. data.json updated.\n")
+            print("[ÃÂ¢ÃÂÃÂ] Hourly scan complete. No breakouts. data.json updated.\n")
 
-    print("[Ã¢ÂÂ] Done.\n")
+    print("[ÃÂ¢ÃÂÃÂ] Done.\n")
 
 
 if __name__ == "__main__":
