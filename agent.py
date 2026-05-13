@@ -772,8 +772,13 @@ def write_data_json(sounds, creators, tags, top_videos, ideas):
         "ideas":     ideas[:5],
     }
 
+    import os as _os
+    _path = _os.path.abspath("data.json")
+    print(f"  [DEBUG] Writing to {_path}")
     with open("data.json", "w") as f:
         json.dump(data, f, indent=2)
+    _sz = _os.path.getsize(_path)
+    print(f"  [DEBUG] Wrote {_sz} bytes to {_path}")
     print(f"[ÃÂ¢ÃÂÃÂ] data.json written ÃÂ¢ÃÂÃÂ {len(sounds)} sounds, {len(creators)} creators, {len(breakouts)} breakouts")
 
 
