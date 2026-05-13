@@ -1,50 +1,41 @@
 {
-  "lastUpdated": "2026-05-13T11:37:49.045915Z",
-  "briefType": "scan",
+  "lastUpdated": "2026-05-13T17:37:38.869305Z",
+  "briefType": "morning",
   "sounds": [
     {
-      "title": "Like That",
-      "author": "Future, Metro Boomin, Kendrick Lamar",
-      "rank": 1,
-      "rank_diff": 12,
+      "title": "Dark Hustle Trap Beat",
+      "author": "Prodbyecho",
+      "rank": 0,
+      "rank_diff": 0,
       "cover": "",
-      "link": "https://www.tiktok.com/music/Like-That-7344729461762213121",
+      "link": "https://www.tiktok.com/music/Dark-Hustle-Trap-Beat-7407158119333103632",
       "trend": []
     },
     {
-      "title": "All Eyes On Me (Workout Edit)",
-      "author": "2Pac",
-      "rank": 2,
-      "rank_diff": 5,
+      "title": "La Mano 19 Remix Kaaris",
+      "author": "MAALAXBEATS \ud83c\udde8\ud83c\udde9\ud83c\uddeb\ud83c\uddf7",
+      "rank": 0,
+      "rank_diff": 0,
       "cover": "",
-      "link": "https://www.tiktok.com/music/All-Eyes-On-Me",
+      "link": "https://www.tiktok.com/music/La-Mano-19-Remix-Kaaris-7516641362040933142",
       "trend": []
     },
     {
-      "title": "TGIF",
-      "author": "GloRilla",
-      "rank": 3,
-      "rank_diff": 8,
+      "title": "one of wun (instrumental)",
+      "author": "no/vox & karaokey",
+      "rank": 0,
+      "rank_diff": 0,
       "cover": "",
-      "link": "https://www.tiktok.com/music/TGIF-7444567890123456789",
+      "link": "https://www.tiktok.com/music/one-of-wun-(instrumental)-7379726730394175505",
       "trend": []
     },
     {
-      "title": "Buttons",
-      "author": "Sia",
-      "rank": 4,
-      "rank_diff": 3,
+      "title": "Trap, hip hop, dark beat \u266a(963369)",
+      "author": "Ninja_Muzik_Tokyo",
+      "rank": 0,
+      "rank_diff": 0,
       "cover": "",
-      "link": "https://www.tiktok.com/music/Buttons-7312345678901234567",
-      "trend": []
-    },
-    {
-      "title": "Not Like Us",
-      "author": "Kendrick Lamar",
-      "rank": 5,
-      "rank_diff": 2,
-      "cover": "",
-      "link": "https://www.tiktok.com/music/Not-Like-Us-7378901234567890123",
+      "link": "https://www.tiktok.com/music/Trap,-hip-hop,-dark-beat-\u266a(963369)-6925866025142241282",
       "trend": []
     }
   ],
@@ -52,16 +43,16 @@
     {
       "handle": "pr1ncefooty",
       "size": "mid",
-      "fans": 96100,
+      "fans": 98600,
       "maxPlays": 0,
       "topVideo": "",
       "topSound": "",
       "topDesc": ""
     },
     {
-      "handle": "elevateperformance_",
-      "size": "mid",
-      "fans": 289100,
+      "handle": "qoachmyles",
+      "size": "small",
+      "fans": 22800,
       "maxPlays": 0,
       "topVideo": "",
       "topSound": "",
@@ -77,45 +68,9 @@
       "topDesc": ""
     },
     {
-      "handle": "gameondrills",
-      "size": "small",
-      "fans": 32800,
-      "maxPlays": 0,
-      "topVideo": "",
-      "topSound": "",
-      "topDesc": ""
-    },
-    {
-      "handle": "bigmose_1x",
-      "size": "small",
-      "fans": 1954,
-      "maxPlays": 0,
-      "topVideo": "",
-      "topSound": "",
-      "topDesc": ""
-    },
-    {
-      "handle": "prolific.soccer",
-      "size": "mid",
-      "fans": 278300,
-      "maxPlays": 0,
-      "topVideo": "",
-      "topSound": "",
-      "topDesc": ""
-    },
-    {
       "handle": "hunt_xxvii",
       "size": "mid",
       "fans": 279300,
-      "maxPlays": 0,
-      "topVideo": "",
-      "topSound": "",
-      "topDesc": ""
-    },
-    {
-      "handle": "iliyas.rmi",
-      "size": "small",
-      "fans": 5396,
       "maxPlays": 0,
       "topVideo": "",
       "topSound": "",
@@ -133,7 +88,7 @@
     {
       "handle": "bigbuckettony",
       "size": "mid",
-      "fans": 298200,
+      "fans": 298700,
       "maxPlays": 0,
       "topVideo": "",
       "topSound": "",
@@ -149,27 +104,18 @@
       "topDesc": ""
     },
     {
-      "handle": "changingthecommunity",
+      "handle": "shakefeet",
       "size": "small",
-      "fans": 3645,
+      "fans": 20300,
       "maxPlays": 0,
       "topVideo": "",
       "topSound": "",
       "topDesc": ""
     },
     {
-      "handle": "akishredz",
-      "size": "small",
-      "fans": 2154,
-      "maxPlays": 0,
-      "topVideo": "",
-      "topSound": "",
-      "topDesc": ""
-    },
-    {
-      "handle": "cooket5training",
+      "handle": "flockrams",
       "size": "mid",
-      "fans": 81600,
+      "fans": 387700,
       "maxPlays": 0,
       "topVideo": "",
       "topSound": "",
@@ -183,6 +129,51 @@
       "topVideo": "",
       "topSound": "",
       "topDesc": ""
+    },
+    {
+      "handle": "365proapp",
+      "size": "small",
+      "fans": 1391,
+      "maxPlays": 0,
+      "topVideo": "",
+      "topSound": "",
+      "topDesc": ""
+    },
+    {
+      "handle": "pick6athletics",
+      "size": "small",
+      "fans": 45100,
+      "maxPlays": 0,
+      "topVideo": "",
+      "topSound": "",
+      "topDesc": ""
+    },
+    {
+      "handle": "cooper.coaching",
+      "size": "mid",
+      "fans": 84300,
+      "maxPlays": 0,
+      "topVideo": "",
+      "topSound": "",
+      "topDesc": ""
+    },
+    {
+      "handle": "phothaimatic",
+      "size": "small",
+      "fans": 2019,
+      "maxPlays": 0,
+      "topVideo": "",
+      "topSound": "",
+      "topDesc": ""
+    },
+    {
+      "handle": "dracobetter",
+      "size": "small",
+      "fans": 25800,
+      "maxPlays": 0,
+      "topVideo": "",
+      "topSound": "",
+      "topDesc": ""
     }
   ],
   "hashtags": [
@@ -190,49 +181,39 @@
       "footballtraining",
       {
         "views": 8200000000,
-        "top_plays": 1700000
+        "top_plays": 1800000
       }
     ],
     [
       "footballdrills",
       {
         "views": 2200000000,
-        "top_plays": 562400
+        "top_plays": 1700000
       }
     ],
     [
       "cornerback",
       {
-        "views": 876300000,
-        "top_plays": 7000000
+        "views": 877100000,
+        "top_plays": 2200000
       }
     ],
     [
       "1v1football",
       {
-        "views": 310600000,
-        "top_plays": 4400000
+        "views": 310700000,
+        "top_plays": 6200000
       }
     ],
     [
       "dbtraining",
       {
         "views": 18400000,
-        "top_plays": 406800
+        "top_plays": 406900
       }
     ]
   ],
   "topVideos": [
-    {
-      "handle": "",
-      "fans": 0,
-      "plays": 0,
-      "desc": "\u201cWe\u2019re back babyyy\u201d \u203c\ufe0f\ud83e\udd23 #nfl #americanfootball #footballtiktok #dndfootball #nfl",
-      "sound": "",
-      "url": "",
-      "thumb": "",
-      "createTime": 0
-    },
     {
       "handle": "",
       "fans": 0,
@@ -267,6 +248,16 @@
       "handle": "",
       "fans": 0,
       "plays": 0,
+      "desc": "Full week of training from this summer.\n\n#gym #football #nfl #athlete #offseason",
+      "sound": "",
+      "url": "",
+      "thumb": "",
+      "createTime": 0
+    },
+    {
+      "handle": "",
+      "fans": 0,
+      "plays": 0,
       "desc": "5 QUICK TWITCH SPEED DRILLS \u26a1\ufe0f\n\nComment \u201cspeed\u201d for 7 Free Speed Tips!\n\n#speedtr",
       "sound": "",
       "url": "",
@@ -277,7 +268,7 @@
       "handle": "",
       "fans": 0,
       "plays": 0,
-      "desc": "Technical session from home\ud83d\udd25\n\n#footballtraining #soccertraining #homeworkout #ho",
+      "desc": "Crafttt #fyp #cornerback #goviral #acc #footbal #presstechnique #viral ",
       "sound": "",
       "url": "",
       "thumb": "",
@@ -290,7 +281,7 @@
       "pillar": "1V1",
       "priority": "\u00c3\u0083\u00c2\u00b0\u00c3\u0082\u00c2\u009f\u00c3\u0082\u00c2\u0093\u00c3\u0082\u00c2\u008c",
       "idea": "Film yourself shutting down a WR route for route \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 voiceover explaining your read at each step",
-      "sound": "Like That",
+      "sound": "Dark Hustle Trap Beat",
       "hashtags": "#dbtraining #db #cornerback",
       "inspo": "",
       "inspo_url": ""
@@ -298,8 +289,8 @@
     {
       "pillar": "DRILLS",
       "priority": "\u00c3\u0083\u00c2\u00b0\u00c3\u0082\u00c2\u009f\u00c3\u0082\u00c2\u0093\u00c3\u0082\u00c2\u008c",
-      "idea": "Morning drill routine from zero \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 film your actual warmup start to finish",
-      "sound": "Like That",
+      "idea": "The ONE drill that fixed my backpedal \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 before/after clip",
+      "sound": "Dark Hustle Trap Beat",
       "hashtags": "#dbtraining #db #cornerback",
       "inspo": "",
       "inspo_url": ""
@@ -307,8 +298,8 @@
     {
       "pillar": "WORKOUT",
       "priority": "\u00c3\u0083\u00c2\u00b0\u00c3\u0082\u00c2\u009f\u00c3\u0082\u00c2\u0093\u00c3\u0082\u00c2\u008c",
-      "idea": "Gym session focused on explosion: box jumps, hip thrusts, band work",
-      "sound": "All Eyes On Me (Workout Edit)",
+      "idea": "Speed workout that adds 0.2 seconds to your 40 \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 3 exercises, film each one",
+      "sound": "La Mano 19 Remix Kaaris",
       "hashtags": "#footballworkout #db #cornerback",
       "inspo": "",
       "inspo_url": ""
@@ -316,8 +307,8 @@
     {
       "pillar": "MOTIVATION",
       "priority": "\u00c3\u0083\u00c2\u00b0\u00c3\u0082\u00c2\u009f\u00c3\u0082\u00c2\u0093\u00c3\u0082\u00c2\u008c",
-      "idea": "'Nobody is outworking me this offseason' \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 raw training clips, no music just sounds",
-      "sound": "All Eyes On Me (Workout Edit)",
+      "idea": "'I train like this so game day feels easy' \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 connect your drills to real game situations",
+      "sound": "La Mano 19 Remix Kaaris",
       "hashtags": "#footballmotivation #db #cornerback",
       "inspo": "",
       "inspo_url": ""
