@@ -5,7 +5,7 @@ name: Football Trend Agent
     - cron: '0 * * * *'
     - cron: '0 10 * * *'
     - cron: '0 18 * * *'
-    - cron: '0 1  * * *'
+    - cron: '0 1 * * *'
   workflow_dispatch:
     inputs:
       brief_type:
@@ -24,7 +24,7 @@ jobs:
   hourly-scan:
     if: |
       (github.event_name == 'schedule' &&
-       github.event.schedule == '0 * * * *') ||
+      github.event.schedule == '0 * * * *') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.brief_type == 'scan')
     runs-on: ubuntu-latest
     steps:
@@ -37,17 +37,19 @@ jobs:
       - run: pip install requests
       - name: Hourly Scan
         env:
-          APIFY_TOKEN:    ${{ secrets.APIFY_TOKEN }}
-          EMAIL_FROM:     ${{ secrets.EMAIL_FROM }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_TO:       ${{ secrets.EMAIL_TO }}
-          BRIEF_TYPE:     scan
-          GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          BRIEF_TYPE: scan
         run: python agent.py
       - name: Commit updated data.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "Football Trend Bot"
           git config user.email "bot@football-trend-agent"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/j7ttg/football-trend-agent.git
           git add data.json || true
           git diff --staged --quiet || git commit -m "Hourly scan $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push || true
@@ -67,16 +69,19 @@ jobs:
       - run: pip install requests
       - name: Run Morning Brief
         env:
-          APIFY_TOKEN:    ${{ secrets.APIFY_TOKEN }}
-          EMAIL_FROM:     ${{ secrets.EMAIL_FROM }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_TO:       ${{ secrets.EMAIL_TO }}
-          BRIEF_TYPE:     morning
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          BRIEF_TYPE: morning
         run: python agent.py
       - name: Commit updated data.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "Football Trend Bot"
           git config user.email "bot@football-trend-agent"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/j7ttg/football-trend-agent.git
           git add data.json || true
           git diff --staged --quiet || git commit -m "Morning brief $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push || true
@@ -96,16 +101,19 @@ jobs:
       - run: pip install requests
       - name: Run Afternoon Brief
         env:
-          APIFY_TOKEN:    ${{ secrets.APIFY_TOKEN }}
-          EMAIL_FROM:     ${{ secrets.EMAIL_FROM }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_TO:       ${{ secrets.EMAIL_TO }}
-          BRIEF_TYPE:     afternoon
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          BRIEF_TYPE: afternoon
         run: python agent.py
       - name: Commit updated data.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "Football Trend Bot"
           git config user.email "bot@football-trend-agent"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/j7ttg/football-trend-agent.git
           git add data.json || true
           git diff --staged --quiet || git commit -m "Afternoon brief $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push || true
@@ -125,16 +133,19 @@ jobs:
       - run: pip install requests
       - name: Run Night Brief
         env:
-          APIFY_TOKEN:    ${{ secrets.APIFY_TOKEN }}
-          EMAIL_FROM:     ${{ secrets.EMAIL_FROM }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_TO:       ${{ secrets.EMAIL_TO }}
-          BRIEF_TYPE:     night
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          BRIEF_TYPE: night
         run: python agent.py
       - name: Commit updated data.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "Football Trend Bot"
           git config user.email "bot@football-trend-agent"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/j7ttg/football-trend-agent.git
           git add data.json || true
           git diff --staged --quiet || git commit -m "Night brief $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push || true
