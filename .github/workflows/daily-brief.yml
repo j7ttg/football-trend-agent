@@ -22,6 +22,8 @@ name: Football Trend Agent
 jobs:
 
   hourly-scan:
+    permissions:
+      contents: write
     if: |
       (github.event_name == 'schedule' &&
       github.event.schedule == '0 * * * *') ||
@@ -56,9 +58,11 @@ jobs:
           git add data.json || true
           git status
           git diff --staged --quiet || git commit -m "Hourly scan $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push
+          git push || echo "Push failed (may be nothing to push)"
 
   morning-brief:
+    permissions:
+      contents: write
     if: |
       (github.event_name == 'schedule' && github.event.schedule == '0 10 * * *') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.brief_type == 'morning')
@@ -91,6 +95,8 @@ jobs:
           git push || true
 
   afternoon-brief:
+    permissions:
+      contents: write
     if: |
       (github.event_name == 'schedule' && github.event.schedule == '0 18 * * *') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.brief_type == 'afternoon')
@@ -123,6 +129,8 @@ jobs:
           git push || true
 
   night-brief:
+    permissions:
+      contents: write
     if: |
       (github.event_name == 'schedule' && github.event.schedule == '0 1 * * *') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.brief_type == 'night')
