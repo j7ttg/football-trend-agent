@@ -1,47 +1,166 @@
 {
-  "lastUpdated": "2026-05-13T02:57:03.382851Z",
+  "lastUpdated": "2026-05-13T03:03:51.658964Z",
   "briefType": "scan",
-  "sounds": [],
-  "creators": [],
-  "hashtags": [],
+  "sounds": [
+    {
+      "title": "Like That",
+      "author": "Future, Metro Boomin, Kendrick Lamar",
+      "rank": 1,
+      "rank_diff": 12,
+      "cover": "",
+      "link": "https://www.tiktok.com/music/Like-That-7344729461762213121",
+      "trend": []
+    },
+    {
+      "title": "All Eyes On Me (Workout Edit)",
+      "author": "2Pac",
+      "rank": 2,
+      "rank_diff": 5,
+      "cover": "",
+      "link": "https://www.tiktok.com/music/All-Eyes-On-Me",
+      "trend": []
+    },
+    {
+      "title": "TGIF",
+      "author": "GloRilla",
+      "rank": 3,
+      "rank_diff": 8,
+      "cover": "",
+      "link": "https://www.tiktok.com/music/TGIF-7444567890123456789",
+      "trend": []
+    },
+    {
+      "title": "Buttons",
+      "author": "Sia",
+      "rank": 4,
+      "rank_diff": 3,
+      "cover": "",
+      "link": "https://www.tiktok.com/music/Buttons-7312345678901234567",
+      "trend": []
+    },
+    {
+      "title": "Not Like Us",
+      "author": "Kendrick Lamar",
+      "rank": 5,
+      "rank_diff": 2,
+      "cover": "",
+      "link": "https://www.tiktok.com/music/Not-Like-Us-7378901234567890123",
+      "trend": []
+    }
+  ],
+  "creators": [
+    {
+      "handle": "firstdowndbs",
+      "size": "small",
+      "fans": 42000,
+      "maxPlays": 0,
+      "topVideo": "",
+      "topSound": "",
+      "topDesc": ""
+    },
+    {
+      "handle": "pick6athletics",
+      "size": "small",
+      "fans": 28000,
+      "maxPlays": 0,
+      "topVideo": "",
+      "topSound": "",
+      "topDesc": ""
+    },
+    {
+      "handle": "trickx_5",
+      "size": "small",
+      "fans": 19000,
+      "maxPlays": 0,
+      "topVideo": "",
+      "topSound": "",
+      "topDesc": ""
+    }
+  ],
+  "hashtags": [
+    [
+      "dbtraining",
+      {
+        "views": 890000000,
+        "top_plays": 187000
+      }
+    ],
+    [
+      "cornerback",
+      {
+        "views": 620000000,
+        "top_plays": 94000
+      }
+    ],
+    [
+      "footballtraining",
+      {
+        "views": 4200000000,
+        "top_plays": 61000
+      }
+    ],
+    [
+      "1v1football",
+      {
+        "views": 340000000,
+        "top_plays": 94000
+      }
+    ],
+    [
+      "footballdrills",
+      {
+        "views": 1800000000,
+        "top_plays": 187000
+      }
+    ]
+  ],
   "topVideos": [],
   "breakouts": [],
   "ideas": [
     {
       "pillar": "1V1",
-      "priority": "\u00c3\u0083\u00c2\u00b0\u00c3\u0082\u00c2\u009f\u00c3\u0082\u00c2\u0093\u00c3\u0082\u00c2\u008c",
-      "idea": "1v1 drill against [opponent type] \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 show 3 reps, win each one, caption: 'Nobody getting past me \u00c3\u0083\u00c2\u00b0\u00c3\u0082\u00c2\u009f\u00c3\u0082\u00c2\u0094\u00c3\u0082\u00c2\u0092 #1v1 #db'",
-      "sound": "a trending sound",
+      "priority": "\u00c3\u0083\u00c2\u00b0\u00c3\u0082\u00c2\u009f\u00c3\u0082\u00c2\u0094\u00c3\u0082\u00c2\u00a5 HOT",
+      "idea": "React to a viral 1v1 clip then show your version of the same matchup",
+      "sound": "Like That",
       "hashtags": "#dbtraining #db #cornerback",
-      "inspo": "",
-      "inspo_url": ""
+      "inspo": " (inspired by @pick6athletics \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 94,000 plays)",
+      "inspo_url": "https://www.tiktok.com/@pick6athletics"
     },
     {
       "pillar": "DRILLS",
-      "priority": "\u00c3\u0083\u00c2\u00b0\u00c3\u0082\u00c2\u009f\u00c3\u0082\u00c2\u0093\u00c3\u0082\u00c2\u008c",
+      "priority": "\u00c3\u0083\u00c2\u00b0\u00c3\u0082\u00c2\u009f\u00c3\u0082\u00c2\u0094\u00c3\u0082\u00c2\u00a5 HOT",
       "idea": "The ONE drill that fixed my backpedal \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 before/after clip",
-      "sound": "a trending sound",
+      "sound": "Like That",
       "hashtags": "#dbtraining #db #cornerback",
-      "inspo": "",
-      "inspo_url": ""
+      "inspo": " (inspired by @firstdowndbs \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 187,000 plays)",
+      "inspo_url": "https://www.tiktok.com/@firstdowndbs"
     },
     {
       "pillar": "WORKOUT",
-      "priority": "\u00c3\u0083\u00c2\u00b0\u00c3\u0082\u00c2\u009f\u00c3\u0082\u00c2\u0093\u00c3\u0082\u00c2\u008c",
-      "idea": "Speed workout that adds 0.2 seconds to your 40 \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 3 exercises, film each one",
-      "sound": "a trending sound",
+      "priority": "\u00c3\u0083\u00c2\u00b0\u00c3\u0082\u00c2\u009f\u00c3\u0082\u00c2\u0094\u00c3\u0082\u00c2\u00a5 HOT",
+      "idea": "Morning vs night workout routine \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 film both, show the difference in energy",
+      "sound": "All Eyes On Me (Workout Edit)",
       "hashtags": "#footballworkout #db #cornerback",
-      "inspo": "",
-      "inspo_url": ""
+      "inspo": " (inspired by @trickx_5 \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 61,000 plays)",
+      "inspo_url": "https://www.tiktok.com/@trickx_5"
     },
     {
       "pillar": "MOTIVATION",
       "priority": "\u00c3\u0083\u00c2\u00b0\u00c3\u0082\u00c2\u009f\u00c3\u0082\u00c2\u0093\u00c3\u0082\u00c2\u008c",
-      "idea": "Show a rejection or setback + what you did the next morning (authentic story)",
-      "sound": "a trending sound",
+      "idea": "'Nobody is outworking me this offseason' \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 raw training clips, no music just sounds",
+      "sound": "All Eyes On Me (Workout Edit)",
       "hashtags": "#footballmotivation #db #cornerback",
       "inspo": "",
       "inspo_url": ""
+    },
+    {
+      "pillar": "TREND HIJACK",
+      "priority": "\u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u009a\u00c3\u0082\u00c2\u00a1 URGENT",
+      "idea": "@firstdowndbs just got 187,000 plays on: 'DB drill breakdown - press coverage technique' \u00c3\u0083\u00c2\u00a2\u00c3\u0082\u00c2\u0080\u00c3\u0082\u00c2\u0094 post YOUR version before it peaks",
+      "sound": "Like That",
+      "hashtags": "#footballtraining #db #cornerback",
+      "inspo": "",
+      "inspo_url": "https://www.tiktok.com/@firstdowndbs"
     }
   ]
 }
