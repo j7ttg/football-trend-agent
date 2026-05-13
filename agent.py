@@ -843,7 +843,7 @@ def main():
     print(f"{'='*52}\n")
 
     # Afternoon/night reuse morning data to save Apify credits
-    if brief in ("afternoon", "night") and os.path.exists("data.json"):
+    if brief in ("afternoon", "night", "scan") and os.path.exists("data.json"):
         print("  Reusing cached data.json (no new Apify call)...")
         with open("data.json") as f:
             cached = json.load(f)
