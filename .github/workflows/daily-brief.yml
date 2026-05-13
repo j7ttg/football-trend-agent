@@ -37,27 +37,6 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install requests
-      - name: Test Apify API
-        env:
-          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
-        run: |
-          echo "Testing Apify API..."
-          python3 -c "
-import os, requests, json
-tok = os.environ.get('APIFY_TOKEN','')
-print('Token length:', len(tok), 'prefix:', tok[:8] if tok else 'EMPTY')
-# Try a quick run with 1 result
-resp = requests.post('https://api.apify.com/v2/acts/clockworks~tiktok-hashtag-scraper/runs',
-  params={'token': tok}, json={'hashtags': ['footballtraining'], 'resultsPerPage': 1}, timeout=30)
-print('Start HTTP:', resp.status_code)
-data = resp.json()
-print('Response keys:', list(data.keys()) if isinstance(data, dict) else 'not a dict')
-if resp.ok:
-    print('Run ID:', data.get('data',{}).get('id','?'))
-    print('Status:', data.get('data',{}).get('status','?'))
-else:
-    print('Error body:', str(data)[:300])
-"
       - name: Hourly Scan
         env:
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
