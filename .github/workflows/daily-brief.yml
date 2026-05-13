@@ -47,12 +47,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "=== DEBUG ==="
+          pwd
+          ls -la data.json 2>/dev/null || echo "NO data.json found!"
           git config user.name "Football Trend Bot"
           git config user.email "bot@football-trend-agent"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/j7ttg/football-trend-agent.git
           git add data.json || true
+          git status
           git diff --staged --quiet || git commit -m "Hourly scan $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push || true
+          git push
 
   morning-brief:
     if: |
