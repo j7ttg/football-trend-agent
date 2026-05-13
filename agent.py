@@ -1,5 +1,5 @@
 """
-Football Trend Agent v3 ÃÂ¢ÃÂÃÂ Fixed field names + rich email with links
+Football Trend Agent v4 -- Blue/gray/black email design, 7-day freshness, virality tiers
 - 6AM: Morning Brief (sounds + creator spy + hashtags + video ideas)
 - 2PM: Afternoon Idea Refresh
 - 9PM: Night Brief (viral recap + tomorrow's plan)
@@ -16,16 +16,18 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
 
-# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ CONFIG ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+# -- CONFIG -----------------------------------------------------------
 APIFY_TOKEN    = os.environ.get("APIFY_TOKEN", "")
 EMAIL_FROM     = os.environ.get("EMAIL_FROM", "therealjoshjames22@gmail.com")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "")
 EMAIL_TO       = os.environ.get("EMAIL_TO", "therealjoshjames22@gmail.com")
-BRIEF_TYPE     = os.environ.get("BRIEF_TYPE", "morning")  # morning | afternoon | night
+BRIEF_TYPE     = os.environ.get("BRIEF_TYPE", "morning")  # morning | afternoon | night | scan
 
 APIFY_BASE = "https://api.apify.com/v2"
 
-# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ CONTENT PILLARS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+SEVEN_DAYS = 7 * 86400  # seconds
+
+# -- CONTENT PILLARS --------------------------------------------------
 PILLARS = {
     "1v1":        ["1v1","one on one","lockdown","shutdown","press coverage","man coverage","jam","bump","guard","lock"],
     "drills":     ["drill","technique","route","break","backpedal","hip","turn","db drill","cornerback","footwork","press","off coverage","ladder","cone"],
@@ -56,12 +58,12 @@ HASHTAGS = [
     "highschoolfootball","collegefootball","defensiveback","7on7"
 ]
 
-# ── FALLBACK DATA (used when Apify returns 0 results) ─────────────
+# -- FALLBACK DATA (used when Apify returns 0 results) ----------------
 FALLBACK_SOUNDS = [
     {"title": "Like That", "author": "Future, Metro Boomin, Kendrick Lamar",
      "rank": 1, "rank_diff": 12, "link": "https://www.tiktok.com/music/Like-That-7344729461762213121",
      "cover": "", "score": 7, "category": "general", "rising": True, "usedCount": 8, "maxPlays": 4200000},
-    {"title": "All Eyes On Me (Workout Edit)", "author": "2Pac",
+    {"title": "All Eyes On Me Workout Edit", "author": "2Pac",
      "rank": 2, "rank_diff": 5, "link": "https://www.tiktok.com/music/All-Eyes-On-Me",
      "cover": "", "score": 8, "category": "workout", "rising": True, "usedCount": 6, "maxPlays": 1800000},
     {"title": "TGIF", "author": "GloRilla",
@@ -74,26 +76,34 @@ FALLBACK_SOUNDS = [
      "rank": 5, "rank_diff": 2, "link": "https://www.tiktok.com/music/Not-Like-Us-7378901234567890123",
      "cover": "", "score": 6, "category": "general", "rising": False, "usedCount": 4, "maxPlays": 5600000},
 ]
+
 FALLBACK_CREATORS = [
     {"handle": "firstdowndbs", "size": "small", "fans": 42000,
-     "videos": [{"desc": "DB drill breakdown - press coverage technique", "plays": 187000,
+     "videos": [{"desc": "DB drill breakdown -- press coverage technique", "plays": 187000,
                  "likes": 22000, "shares": 1800, "saves": 3100, "sound": "All Eyes On Me",
                  "sound_author": "2Pac", "thumb": "", "url": "https://www.tiktok.com/@firstdowndbs",
                  "fans": 42000, "viral": True, "pillar": "drills",
-                 "viral_reason": "High saves - educational/reference value"}]},
+                 "viral_reason": "High saves -- educational/reference value"}]},
+    {"handle": "ejizzle00", "size": "small", "fans": 12000,
+     "videos": [{"desc": "Slideshow highlight reel -- getting buckets on the field", "plays": 560500,
+                 "likes": 48000, "shares": 5200, "saves": 7100, "sound": "Like That",
+                 "sound_author": "Future, Metro Boomin", "thumb": "", "url": "https://www.tiktok.com/@ejizzle00",
+                 "fans": 12000, "viral": True, "pillar": "1v1",
+                 "viral_reason": "MEGA VIRAL -- 560K views on a small account. Slideshow format working huge right now"}]},
     {"handle": "pick6athletics", "size": "small", "fans": 28000,
-     "videos": [{"desc": "1v1 reps - nobody getting past me this summer", "plays": 94000,
+     "videos": [{"desc": "1v1 reps -- nobody getting past me this summer", "plays": 94000,
                  "likes": 11000, "shares": 890, "saves": 1400, "sound": "Like That",
                  "sound_author": "Future, Metro Boomin", "thumb": "", "url": "https://www.tiktok.com/@pick6athletics",
                  "fans": 28000, "viral": True, "pillar": "1v1",
-                 "viral_reason": "Strong engagement - good hook/timing"}]},
+                 "viral_reason": "Strong engagement -- good hook/timing"}]},
     {"handle": "trickx_5", "size": "small", "fans": 19000,
-     "videos": [{"desc": "Offseason grind - speed and agility workout", "plays": 61000,
+     "videos": [{"desc": "Offseason grind -- speed and agility workout", "plays": 61000,
                  "likes": 7800, "shares": 560, "saves": 980, "sound": "TGIF",
                  "sound_author": "GloRilla", "thumb": "", "url": "https://www.tiktok.com/@trickx_5",
                  "fans": 19000, "viral": True, "pillar": "workout",
-                 "viral_reason": "Strong engagement - good hook/timing"}]},
+                 "viral_reason": "Strong engagement -- good hook/timing"}]},
 ]
+
 FALLBACK_TAGS = [
     ("dbtraining", {"views": 890000000, "top_plays": 187000}),
     ("cornerback", {"views": 620000000, "top_plays": 94000}),
@@ -102,47 +112,46 @@ FALLBACK_TAGS = [
     ("footballdrills", {"views": 1800000000, "top_plays": 187000}),
 ]
 
-
 IDEA_TEMPLATES = {
     "1v1": [
-        "1v1 drill against [opponent type] ÃÂ¢ÃÂÃÂ show 3 reps, win each one, caption: 'Nobody getting past me ÃÂ°ÃÂÃÂÃÂ #1v1 #db'",
-        "Film yourself shutting down a WR route for route ÃÂ¢ÃÂÃÂ voiceover explaining your read at each step",
+        "1v1 drill against [opponent type] -- show 3 reps, win each one, caption: 'Nobody getting past me #1v1 #db'",
+        "Film yourself shutting down a WR route for route -- voiceover explaining your read at each step",
         "React to a viral 1v1 clip then show your version of the same matchup",
         "Press coverage tutorial: 3 different WR releases, how you handle each one",
-        "'Can you guard me?' challenge ÃÂ¢ÃÂÃÂ invite a WR friend, film the whole session raw",
+        "'Can you guard me?' challenge -- invite a WR friend, film the whole session raw",
     ],
     "drills": [
-        "4 drills every DB should do before practice ÃÂ¢ÃÂÃÂ list format, each drill 5 seconds",
-        "The ONE drill that fixed my backpedal ÃÂ¢ÃÂÃÂ before/after clip",
-        "Morning drill routine from zero ÃÂ¢ÃÂÃÂ film your actual warmup start to finish",
+        "4 drills every DB should do before practice -- list format, each drill 5 seconds",
+        "The ONE drill that fixed my backpedal -- before/after clip",
+        "Morning drill routine from zero -- film your actual warmup start to finish",
         "Breakdown: how to mirror a WR's hips on a double move (slow-mo + voiceover)",
-        "'DB Fundamentals Day [X]' series ÃÂ¢ÃÂÃÂ one technique per video, consistent format",
+        "'DB Fundamentals Day [X]' series -- one technique per video, consistent format",
     ],
     "workout": [
-        "Speed workout that adds 0.2 seconds to your 40 ÃÂ¢ÃÂÃÂ 3 exercises, film each one",
-        "DB combine prep workout ÃÂ¢ÃÂÃÂ show exactly what you do 8 weeks out",
+        "Speed workout that adds 0.2 seconds to your 40 -- 3 exercises, film each one",
+        "DB combine prep workout -- show exactly what you do 8 weeks out",
         "Gym session focused on explosion: box jumps, hip thrusts, band work",
-        "The workout nobody talks about for DBs ÃÂ¢ÃÂÃÂ hip flexibility and change of direction",
-        "Morning vs night workout routine ÃÂ¢ÃÂÃÂ film both, show the difference in energy",
+        "The workout nobody talks about for DBs -- hip flexibility and change of direction",
+        "Morning vs night workout routine -- film both, show the difference in energy",
     ],
     "motivation": [
         "Voiceover on outdoor training: 'This is what the offseason looks like when you want it'",
-        "'Nobody is outworking me this offseason' ÃÂ¢ÃÂÃÂ raw training clips, no music just sounds",
+        "'Nobody is outworking me this offseason' -- raw training clips, no music just sounds",
         "Show a rejection or setback + what you did the next morning (authentic story)",
-        "Day in the life: 5AM to 10PM grind day ÃÂ¢ÃÂÃÂ full vlog style",
-        "'I train like this so game day feels easy' ÃÂ¢ÃÂÃÂ connect your drills to real game situations",
+        "Day in the life: 5AM to 10PM grind day -- full vlog style",
+        "'I train like this so game day feels easy' -- connect your drills to real game situations",
     ]
 }
 
-# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ APIFY HELPERS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+# -- APIFY HELPERS ----------------------------------------------------
 def run_actor(actor_id, input_data, timeout=240):
-    """Run Apify actor and return dataset items. Verbose debug logging."""
+    """Run an Apify actor and return its dataset items. Verbose logging for debugging."""
     try:
         if not APIFY_TOKEN:
             print("  [ERROR] APIFY_TOKEN is not set!")
             return []
         actor_slug = actor_id.replace("/", "~")
-        print(f"  [DEBUG] Starting {actor_slug} input={input_data}")
+        print(f"  [DEBUG] Starting actor {actor_slug} with input: {json.dumps(input_data)}")
         resp = requests.post(
             f"{APIFY_BASE}/acts/{actor_slug}/runs",
             params={"token": APIFY_TOKEN},
@@ -151,12 +160,12 @@ def run_actor(actor_id, input_data, timeout=240):
         )
         print(f"  [DEBUG] Actor start HTTP {resp.status_code}")
         if not resp.ok:
-            print(f"  [ERROR] Start failed: {resp.text[:300]}")
+            print(f"  [ERROR] Actor start failed: {resp.text[:300]}")
             return []
         run_data   = resp.json()["data"]
         run_id     = run_data["id"]
         dataset_id = run_data["defaultDatasetId"]
-        print(f"  [DEBUG] Run ID={run_id} dataset={dataset_id}")
+        print(f"  [DEBUG] Run ID={run_id}, dataset={dataset_id}")
 
         deadline = time.time() + timeout
         status   = "RUNNING"
@@ -167,18 +176,18 @@ def run_actor(actor_id, input_data, timeout=240):
                 timeout=15
             )
             if not sr.ok:
-                print(f"  [WARN] Poll HTTP {sr.status_code}")
+                print(f"  [WARN] Status poll HTTP {sr.status_code}")
                 time.sleep(10)
                 continue
             status = sr.json()["data"]["status"]
             usage  = sr.json()["data"].get("usageTotalUsd", "?")
-            print(f"  [DEBUG] status={status} usd={usage}")
+            print(f"  [DEBUG] Run status={status}, usageUsd={usage}")
             if status in ("SUCCEEDED", "FAILED", "ABORTED", "TIMED-OUT"):
                 break
             time.sleep(10)
 
         if status != "SUCCEEDED":
-            print(f"  [WARN] {actor_id} ended with status={status}")
+            print(f"  [WARN] {actor_id} finished with status={status}")
             return []
 
         items_resp = requests.get(
@@ -186,9 +195,9 @@ def run_actor(actor_id, input_data, timeout=240):
             params={"token": APIFY_TOKEN, "clean": "true", "limit": 500},
             timeout=30
         )
-        print(f"  [DEBUG] Dataset HTTP {items_resp.status_code}")
+        print(f"  [DEBUG] Dataset fetch HTTP {items_resp.status_code}")
         if not items_resp.ok:
-            print(f"  [ERROR] Dataset failed: {items_resp.text[:200]}")
+            print(f"  [ERROR] Dataset fetch failed: {items_resp.text[:200]}")
             return []
         items = items_resp.json()
         print(f"  [DEBUG] Got {len(items)} items from dataset")
@@ -198,8 +207,9 @@ def run_actor(actor_id, input_data, timeout=240):
         return []
 
 
+# -- SINGLE FETCH (reuse one actor call for all three parsers) --------
 def fetch_all_raw():
-    """One actor call, 5 hashtags x 10 results. Falls back to curated data if empty."""
+    """One actor call, 5 hashtags x 10 results = ~50 items. Stays in free tier."""
     print("  Fetching TikTok data (single actor call)...")
     results = run_actor("clockworks/tiktok-hashtag-scraper", {
         "hashtags": ["footballtraining", "dbtraining", "cornerback", "1v1football", "footballdrills"],
@@ -208,20 +218,17 @@ def fetch_all_raw():
         "shouldDownloadVideos": False,
     }, timeout=240)
     if not results:
-        print("  [WARN] Actor returned 0 items -- will use fallback data")
+        print("  [WARN] Actor returned 0 items -- will use curated fallback data")
     return results
 
 
+# -- SCORING ----------------------------------------------------------
 def score_sound(sound):
-    """Score a sound for football/workout relevance. Returns (score 0-10, category)."""
+    """Score a sound 0-10 for football/workout relevance."""
     score = 0
     name  = (sound.get("title", "") + " " + sound.get("author", "")).lower()
-
-    # Football/workout keywords in title
     football_hits = sum(1 for kw in FOOTBALL_KW if kw in name)
     score += football_hits * 3
-
-    # Trending momentum: rank_diff > 0 means rising fast
     rank_diff = sound.get("rank_diff") or 0
     if rank_diff > 20:
         score += 3
@@ -229,21 +236,15 @@ def score_sound(sound):
         score += 2
     elif rank_diff > 0:
         score += 1
-
-    # Trend trajectory: last value in trend array vs first
     trend = sound.get("trend", [])
     if len(trend) >= 2:
         first_val = trend[0].get("value", 0)
         last_val  = trend[-1].get("value", 0)
         if first_val > 0 and last_val / first_val > 3:
-            score += 2  # rapidly rising
+            score += 2
         elif last_val > 0.5:
-            score += 1  # already popular
-
-    # Cap at 10
+            score += 1
     score = min(score, 10)
-
-    # Category
     if football_hits > 0:
         cat = "football"
     elif any(k in name for k in ["gym","lift","pump","grind","beast","power","energy","fire","hype","motivation"]):
@@ -252,7 +253,6 @@ def score_sound(sound):
         cat = "sport"
     else:
         cat = "general"
-
     return score, cat
 
 
@@ -265,18 +265,24 @@ def get_pillar(text):
     return None
 
 
-# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ DATA FETCHERS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+# -- DATA FETCHERS ----------------------------------------------------
 def fetch_trending_sounds(raw):
-    """Extract trending sounds from pre-fetched hashtag video results."""
-    print("  Parsing trending soundsâ¦")
-
+    """Extract trending sounds from pre-fetched hashtag video results.
+    Only includes sounds used in videos from the last 7 days.
+    Filters to 30k+ plays, sorted by virality."""
+    print("  Parsing trending sounds...")
+    cutoff = time.time() - SEVEN_DAYS
     sound_counts = {}
     for item in raw:
-        music = item.get("musicMeta") or {}
-        title  = music.get("musicName", "") or music.get("musicOriginal", "")
-        author = music.get("musicAuthor", "") or ""
+        # 7-day freshness filter
+        create_time = item.get("createTime", 0) or 0
+        if create_time > 0 and create_time < cutoff:
+            continue
+        music    = item.get("musicMeta") or {}
+        title    = music.get("musicName", "") or music.get("musicOriginal", "")
+        author   = music.get("musicAuthor", "") or ""
         music_id = music.get("musicId", "") or ""
-        plays  = item.get("playCount", 0) or 0
+        plays    = item.get("playCount", 0) or 0
         if not title or title.lower() in ("original sound", ""):
             continue
         key = music_id or (title + "|" + author)
@@ -293,8 +299,8 @@ def fetch_trending_sounds(raw):
 
     sounds = []
     for s in sound_counts.values():
-        if s["usedCount"] < 2:
-            continue
+        if s["maxPlays"] < 30000:
+            continue  # virality threshold
         sc, cat = score_sound({"title": s["title"], "author": s["author"]})
         sounds.append({
             "title":     s["title"],
@@ -310,18 +316,25 @@ def fetch_trending_sounds(raw):
             "maxPlays":  s["maxPlays"],
         })
 
-    sounds.sort(key=lambda x: (0 if x["category"] == "football" else 1, -x["usedCount"], -x["maxPlays"]))
+    # Sort by maxPlays descending
+    sounds.sort(key=lambda x: -x["maxPlays"])
     return sounds[:15]
 
 
 def fetch_creator_spy(raw):
-    """Find emerging creators from pre-fetched hashtag video results."""
-    print("  Parsing creator dataÃ¢ÂÂ¦")
-
+    """Find emerging creators from pre-fetched hashtag video results.
+    Only videos from the last 7 days."""
+    print("  Parsing creator data...")
+    cutoff = time.time() - SEVEN_DAYS
     seen_handles = set()
     creator_map  = {}
 
     for v in raw:
+        # 7-day freshness filter
+        create_time = v.get("createTime", 0) or 0
+        if create_time > 0 and create_time < cutoff:
+            continue
+
         author = v.get("authorMeta") or {}
         handle = author.get("name", "") or ""
         if not handle or handle in seen_handles:
@@ -337,45 +350,65 @@ def fetch_creator_spy(raw):
         thumb  = (v.get("videoMeta") or {}).get("coverUrl", "") or ""
         url    = v.get("webVideoUrl", "") or ""
 
+        # Only track small/emerging creators (under 500K followers)
         if fans > 500_000:
             continue
 
         viral_reason = ""
         if plays > 500_000:
-            viral_reason = "Ã°ÂÂÂ¥ Mega viral Ã¢ÂÂ massive reach"
+            viral_reason = "MEGA VIRAL -- massive reach"
         elif plays > 100_000:
             if shares > likes * 0.05:
-                viral_reason = "Ã¢ÂÂ¡ High share rate Ã¢ÂÂ relatable/shareable content"
+                viral_reason = "High share rate -- relatable/shareable content"
             elif saves > likes * 0.1:
-                viral_reason = "Ã°ÂÂÂ High saves Ã¢ÂÂ educational/reference value"
+                viral_reason = "High saves -- educational/reference value"
             else:
-                viral_reason = "Ã°ÂÂÂ Strong engagement Ã¢ÂÂ good hook/timing"
+                viral_reason = "Strong engagement -- good hook/timing"
+        elif plays > 30_000:
+            viral_reason = "Trending in niche -- gaining traction"
 
         if handle not in creator_map:
             size = "small" if fans < 50_000 else "mid"
-            creator_map[handle] = {"handle": handle, "size": size, "fans": fans, "videos": []}
+            creator_map[handle] = {
+                "handle": handle,
+                "size":   size,
+                "fans":   fans,
+                "videos": []
+            }
 
         if len(creator_map[handle]["videos"]) < 3:
             creator_map[handle]["videos"].append({
-                "desc": desc[:100], "plays": plays, "likes": likes,
-                "shares": shares, "saves": saves, "sound": sound,
-                "sound_author": sound_author, "thumb": thumb, "url": url,
-                "fans": fans, "viral": plays > 30_000,
-                "pillar": None, "viral_reason": viral_reason,
+                "desc":         desc[:100],
+                "plays":        plays,
+                "likes":        likes,
+                "shares":       shares,
+                "saves":        saves,
+                "sound":        sound,
+                "sound_author": sound_author,
+                "thumb":        thumb,
+                "url":          url,
+                "fans":         fans,
+                "viral":        plays > 30_000,
+                "pillar":       get_pillar(desc),
+                "viral_reason": viral_reason,
             })
         seen_handles.add(handle)
 
     results = sorted(creator_map.values(), key=lambda c: max((v["plays"] for v in c["videos"]), default=0), reverse=True)
     return results[:15]
 
-def fetch_hashtags(raw):
-    print("  Parsing hashtag dataÃÂ¢ÃÂÃÂ¦")
 
-    # Collect top videos per hashtag + trending sounds used
-    tag_data   = {}
+def fetch_hashtags(raw):
+    print("  Parsing hashtag data...")
+    cutoff   = time.time() - SEVEN_DAYS
+    tag_data = {}
     top_videos = []
 
     for item in raw:
+        create_time = item.get("createTime", 0) or 0
+        if create_time > 0 and create_time < cutoff:
+            continue
+
         tag      = item.get("input", "").lower().strip("#")
         plays    = item.get("playCount", 0) or 0
         likes    = item.get("diggCount", 0) or 0
@@ -413,7 +446,7 @@ def fetch_hashtags(raw):
     return tags_sorted[:10], top_videos[:6]
 
 
-# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ VIDEO IDEA GENERATOR ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+# -- VIDEO IDEA GENERATOR --------------------------------------------
 def generate_video_ideas(sounds, creators, top_videos):
     ideas       = []
     hot_pillars = {}
@@ -436,9 +469,9 @@ def generate_video_ideas(sounds, creators, top_videos):
 
     for pillar, templates in IDEA_TEMPLATES.items():
         template   = random.choice(templates)
-        priority   = "ÃÂ°ÃÂÃÂÃÂ¥ HOT" if hot_pillars.get(pillar, 0) > 0 else "ÃÂ°ÃÂÃÂÃÂ"
+        priority   = "HOT" if hot_pillars.get(pillar, 0) > 0 else "STANDARD"
         inspo      = next((v for v in viral_inspo if v["pillar"] == pillar), None)
-        inspo_note = f" (inspired by @{inspo['handle']} ÃÂ¢ÃÂÃÂ {inspo['plays']:,} plays)" if inspo else ""
+        inspo_note = f" (inspired by @{inspo['handle']} -- {inspo['plays']:,} plays)" if inspo else ""
 
         ideas.append({
             "pillar":    pillar.upper(),
@@ -453,8 +486,8 @@ def generate_video_ideas(sounds, creators, top_videos):
     for v in viral_inspo[:2]:
         ideas.append({
             "pillar":    "TREND HIJACK",
-            "priority":  "ÃÂ¢ÃÂÃÂ¡ URGENT",
-            "idea":      f"@{v['handle']} just got {v['plays']:,} plays on: '{v['desc'][:50]}' ÃÂ¢ÃÂÃÂ post YOUR version before it peaks",
+            "priority":  "URGENT",
+            "idea":      f"@{v['handle']} just got {v['plays']:,} plays on: '{v['desc'][:50]}' -- post YOUR version before it peaks",
             "sound":     top_sound,
             "hashtags":  "#footballtraining #db #cornerback",
             "inspo":     "",
@@ -464,309 +497,373 @@ def generate_video_ideas(sounds, creators, top_videos):
     return ideas
 
 
-# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ EMAIL CSS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+# -- BEST POST TIME ---------------------------------------------------
+def best_post_time():
+    """Returns today's recommended posting window based on day of week."""
+    weekday = datetime.now().weekday()  # 0=Mon, 6=Sun
+    if weekday in (4, 5):  # Fri/Sat
+        return "7-9 PM ET (peak weekend engagement)"
+    elif weekday == 6:  # Sun
+        return "6-8 PM ET (pre-week hype)"
+    elif weekday in (0, 1):  # Mon/Tue
+        return "6-8 PM ET (after school/work)"
+    else:  # Wed/Thu
+        return "7-9 PM ET (mid-week sweet spot)"
+
+
+# -- PLAYS LABEL (virality tier) -------------------------------------
+def plays_label(plays):
+    """Returns a plain-text virality tier label."""
+    if plays >= 500_000:
+        return "MEGA"
+    elif plays >= 100_000:
+        return "VIRAL"
+    elif plays >= 30_000:
+        return "HOT"
+    else:
+        return ""
+
+
+def plays_color(plays):
+    """Returns CSS color for a plays count based on virality tier."""
+    if plays >= 500_000:
+        return "#f87171"   # red -- mega
+    elif plays >= 100_000:
+        return "#fbbf24"   # amber -- viral
+    elif plays >= 30_000:
+        return "#4a9eff"   # blue -- hot
+    else:
+        return "#888888"   # gray
+
+
+def fmt_plays(plays):
+    """Format plays number compactly."""
+    if plays >= 1_000_000:
+        return f"{plays/1_000_000:.1f}M"
+    elif plays >= 1_000:
+        return f"{plays/1_000:.0f}K"
+    return str(plays)
+
+
+# -- EMAIL CSS --------------------------------------------------------
 def email_style():
     return """
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
     *{box-sizing:border-box;margin:0;padding:0;}
-    body{background:#060606;color:#e8e8e8;font-family:'Inter',system-ui,sans-serif;max-width:660px;margin:0 auto;padding:16px;}
-    h2{font-size:15px;font-weight:700;letter-spacing:.5px;margin-bottom:12px;color:#fff;}
-    a{color:inherit;text-decoration:none;}
-    .card{background:#111217;border:1px solid #1e2028;border-radius:14px;padding:18px;margin-bottom:14px;}
+    body{background:#0a0c10;color:#d4d8e0;font-family:'Inter',system-ui,sans-serif;max-width:660px;margin:0 auto;padding:16px;}
+    h2{font-size:14px;font-weight:700;letter-spacing:.6px;margin-bottom:12px;color:#e8ecf4;text-transform:uppercase;}
+    a{color:#4a9eff;text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    .card{background:#111620;border:1px solid #1c2235;border-radius:14px;padding:18px;margin-bottom:14px;}
     .tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.5px;}
-    .tag-green{background:#0a2e14;color:#4ade80;border:1px solid #166534;}
-    .tag-yellow{background:#2a1a00;color:#fbbf24;border:1px solid #78350f;}
-    .tag-red{background:#2a0808;color:#f87171;border:1px solid #7f1d1d;}
-    .tag-blue{background:#0a1a2e;color:#60a5fa;border:1px solid #1e3a5f;}
-    .tag-gray{background:#1a1a1a;color:#888;border:1px solid #333;}
-    .stat{font-size:11px;color:#666;}
-    .stat strong{color:#aaa;}
-    .divider{border:none;border-top:1px solid #1e2028;margin:12px 0;}
+    .tag-mega{background:#2a0a0a;color:#f87171;border:1px solid #7f1d1d;}
+    .tag-viral{background:#2a1a00;color:#fbbf24;border:1px solid #78350f;}
+    .tag-hot{background:#0a1a2e;color:#4a9eff;border:1px solid #1e3a5f;}
+    .tag-blue{background:#0a1a2e;color:#4a9eff;border:1px solid #1e3a5f;}
+    .tag-green{background:#0a2414;color:#4ade80;border:1px solid #166534;}
+    .tag-gray{background:#1a1d25;color:#666;border:1px solid #2a2d38;}
+    .stat{font-size:11px;color:#556;}
+    .stat strong{color:#8a9ab0;}
+    .divider{border:none;border-top:1px solid #1c2235;margin:12px 0;}
+    .watch-btn{display:inline-block;padding:4px 12px;background:#151c2e;border:1px solid #1e3a5f;border-radius:6px;font-size:10px;color:#4a9eff;font-weight:600;margin-top:6px;}
     """
 
-# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ SOUND COLOR ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
-def sound_tag(cat, score):
-    if cat == "football":
-        return f'<span class="tag tag-green">ÃÂ°ÃÂÃÂÃÂ FOOTBALL ÃÂÃÂ· {score}/10</span>'
-    elif cat == "workout":
-        return f'<span class="tag tag-yellow">ÃÂ°ÃÂÃÂÃÂª WORKOUT ÃÂÃÂ· {score}/10</span>'
-    elif cat == "sport":
-        return f'<span class="tag tag-blue">ÃÂ°ÃÂÃÂÃÂ SPORT ÃÂÃÂ· {score}/10</span>'
-    else:
-        return f'<span class="tag tag-gray">ÃÂ°ÃÂÃÂÃÂµ GENERAL ÃÂÃÂ· {score}/10</span>'
 
-
-# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ EMAIL BUILDERS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+# -- EMAIL BUILDERS --------------------------------------------------
 def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
-    top = sounds[0] if sounds else {"title": "ÃÂ¢ÃÂÃÂ", "link": ""}
+    post_time = best_post_time()
+    top = sounds[0] if sounds else {"title": "--", "link": ""}
 
-    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ SOUNDS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+    # -- NICHE SOUNDS SECTION (sorted by virality, 30k+ threshold) --
     sound_rows = ""
-    for i, s in enumerate(sounds[:10], 1):
-        rising_badge = ' <span class="tag tag-green" style="font-size:9px;">ÃÂ¢ÃÂÃÂ² RISING</span>' if s["rising"] else ""
-        link_open  = f'<a href="{s["link"]}" style="color:#e8e8e8;">' if s["link"] else ""
-        link_close = "</a>" if s["link"] else ""
+    for i, s in enumerate(sounds[:12], 1):
+        mp      = s.get("maxPlays", 0)
+        tier    = plays_label(mp)
+        color   = plays_color(mp)
+        tier_badge = f'<span class="tag tag-{"mega" if tier=="MEGA" else "viral" if tier=="VIRAL" else "hot"}" style="font-size:9px;">{tier}</span>' if tier else ""
+        rising_badge = ' <span class="tag tag-green" style="font-size:9px;">RISING</span>' if s.get("rising") else ""
+        used   = s.get("usedCount", 0)
+        link_o = f'<a href="{s["link"]}" style="color:#d4d8e0;font-weight:600;">' if s.get("link") else '<span style="font-weight:600;">'
+        link_c = "</a>" if s.get("link") else "</span>"
+        tiktok_link = f' &nbsp;<a href="{s["link"]}" class="watch-btn">Play on TikTok</a>' if s.get("link") else ""
+
         sound_rows += f"""
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #1a1a22;">
-          {'<img src="' + s['cover'] + '" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;" />' if s.get('cover') else '<div style="width:40px;height:40px;border-radius:8px;background:#1e2028;flex-shrink:0;"></div>'}
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #151820;">
+          <div style="width:32px;text-align:center;font-size:11px;color:#4a5570;font-weight:700;">#{i}</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{link_open}#{i} {s['title']}{link_close}{rising_badge}</div>
-            <div class="stat" style="margin-top:2px;">{s['author']} &nbsp;ÃÂÃÂ·&nbsp; Rank #{s['rank']}</div>
+            <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{link_o}{s["title"]}{link_c} {tier_badge}{rising_badge}</div>
+            <div style="font-size:11px;color:#4a5570;margin-top:2px;">{s["author"]} &nbsp;&bull;&nbsp; Used in {used} niche videos{tiktok_link}</div>
           </div>
-          <div style="flex-shrink:0;">{sound_tag(s['category'], s['score'])}</div>
+          <div style="flex-shrink:0;font-size:13px;font-weight:700;color:{color};">{fmt_plays(mp)}</div>
         </div>"""
 
-    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ CREATORS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
-    creator_html = ""
-    # Sort: small first (emphasize emerging), large last
-    sorted_creators = sorted(creators, key=lambda c: {"small":0,"mid":1,"large":2}.get(c["size"],1))
+    # -- CREATOR SPOTLIGHT (small creators first, emphasis on viral) --
+    spotlight_html = ""
+    sorted_creators = sorted(creators, key=lambda c: (
+        {"small": 0, "mid": 1, "large": 2}.get(c["size"], 1),
+        -max((v["plays"] for v in c["videos"]), default=0)
+    ))
     for c in sorted_creators:
-        size_icons = {"small": "ÃÂ°ÃÂÃÂÃÂ± EMERGING", "mid": "ÃÂ°ÃÂÃÂÃÂ MID-TIER", "large": "ÃÂ¢ÃÂÃÂ¡ LARGE"}
-        size_label = size_icons.get(c["size"], "")
-        size_color = {"small": "#4ade80", "mid": "#fbbf24", "large": "#60a5fa"}.get(c["size"], "#888")
-        viral_vids = [v for v in c["videos"] if v["viral"]]
+        size_label = {"small": "EMERGING", "mid": "MID-TIER", "large": "LARGE"}.get(c["size"], "")
+        size_color = {"small": "#4ade80", "mid": "#4a9eff", "large": "#888"}.get(c["size"], "#888")
+        handle_url = f"https://www.tiktok.com/@{c['handle']}"
+        max_plays  = max((v["plays"] for v in c["videos"]), default=0)
+        viral_vids = [v for v in c["videos"] if v.get("viral")]
 
-        creator_html += f"""
-        <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #1e2028;">
+        spotlight_html += f"""
+        <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #1c2235;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <div>
-              <span style="font-weight:700;font-size:14px;">@{c['handle']}</span>
-              <span style="font-size:10px;color:{size_color};margin-left:8px;font-weight:700;">{size_label}</span>
+              <a href="{handle_url}" style="font-weight:700;font-size:14px;color:#d4d8e0;">@{c["handle"]}</a>
+              <span style="font-size:10px;color:{size_color};margin-left:8px;font-weight:700;background:#0a0c10;padding:2px 7px;border-radius:10px;border:1px solid {size_color}30;">{size_label}</span>
             </div>
-            {'<span class="tag tag-red">ÃÂ°ÃÂÃÂÃÂ¥ VIRAL</span>' if viral_vids else ''}
+            <div style="font-size:11px;color:#4a5570;">{c.get("fans", 0):,} followers</div>
           </div>"""
 
         if not c["videos"]:
-            creator_html += '<div style="font-size:12px;color:#555;">No recent videos found</div>'
+            spotlight_html += '<div style="font-size:12px;color:#333;">No recent videos</div>'
         else:
-            for v in c["videos"][:3]:
-                pillar_tag = f'<span class="tag tag-green" style="font-size:9px;">{v["pillar"].upper()}</span> ' if v["pillar"] else ""
-                watch_btn  = f'<a href="{v["url"]}" style="display:inline-block;padding:4px 10px;background:#1e2028;border-radius:6px;font-size:10px;color:#60a5fa;font-weight:600;margin-top:6px;">ÃÂ¢ÃÂÃÂ¶ Watch on TikTok</a>' if v["url"] else ""
-                viral_why  = f'<div style="font-size:10px;color:#fbbf24;margin-top:3px;">{v["viral_reason"]}</div>' if v["viral_reason"] else ""
-                thumb_html = f'<img src="{v["thumb"]}" style="width:52px;height:70px;border-radius:6px;object-fit:cover;flex-shrink:0;" />' if v["thumb"] else ""
+            for v in c["videos"][:2]:
+                vp      = v.get("plays", 0)
+                vcolor  = plays_color(vp)
+                vtier   = plays_label(vp)
+                vtag    = f'<span class="tag tag-{"mega" if vtier=="MEGA" else "viral" if vtier=="VIRAL" else "hot"}" style="font-size:9px;">{vtier}</span> ' if vtier else ""
+                watch   = f'<a href="{v["url"]}" class="watch-btn">Watch on TikTok</a>' if v.get("url") else ""
+                reason  = f'<div style="font-size:10px;color:#4a9eff;margin-top:3px;">{v["viral_reason"]}</div>' if v.get("viral_reason") else ""
+                sound_l = f'<div style="font-size:10px;color:#4a5570;margin-top:2px;">Sound: {v["sound"]}</div>' if v.get("sound") else ""
+                pillar_b = f'<span class="tag tag-gray" style="font-size:9px;">{v["pillar"].upper()}</span> ' if v.get("pillar") else ""
 
-                creator_html += f"""
-                <div style="display:flex;gap:10px;margin-bottom:10px;background:#0d0f14;border-radius:8px;padding:8px;">
-                  {thumb_html}
-                  <div style="flex:1;min-width:0;">
-                    <div style="font-size:11px;color:#bbb;margin-bottom:4px;line-height:1.4;">{pillar_tag}{v['desc'] or '(no caption)'}</div>
-                    <div class="stat"><strong style="color:#4ade80;">{v['plays']:,} plays</strong> ÃÂÃÂ· {v['likes']:,} likes ÃÂÃÂ· {v['saves']:,} saves</div>
-                    {f'<div class="stat" style="margin-top:2px;">ÃÂ°ÃÂÃÂÃÂµ {v["sound"]}</div>' if v["sound"] else ""}
-                    {viral_why}
-                    {watch_btn}
-                  </div>
+                spotlight_html += f"""
+                <div style="background:#0d1018;border-radius:8px;padding:10px;margin-bottom:8px;">
+                  <div style="font-size:11px;color:#8a9ab0;margin-bottom:6px;line-height:1.4;">{pillar_b}{vtag}{v["desc"] or "(no caption)"}</div>
+                  <div style="font-size:12px;font-weight:700;color:{vcolor};">{fmt_plays(vp)} views</div>
+                  <div style="font-size:11px;color:#4a5570;">{v.get("likes",0):,} likes &nbsp;&bull;&nbsp; {v.get("saves",0):,} saves</div>
+                  {sound_l}
+                  {reason}
+                  {watch}
                 </div>"""
-        creator_html += "</div>"
+        spotlight_html += "</div>"
 
-    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ HASHTAGS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+    # -- HASHTAGS --
     ht_html = ""
     for tag, data in tags[:8]:
         views = data["views"]
         views_fmt = f"{views/1_000_000_000:.1f}B" if views >= 1e9 else f"{views/1_000_000:.0f}M" if views >= 1e6 else f"{views:,}"
-        ht_html += f'<span style="background:#0a1a2e;color:#60a5fa;padding:5px 12px;border-radius:20px;margin:3px;display:inline-block;font-size:12px;font-weight:600;">#{tag} <span style="color:#2563eb;font-size:10px;">{views_fmt} views</span></span>'
+        ht_html += f'<a href="https://www.tiktok.com/tag/{tag}" style="background:#111a2e;color:#4a9eff;padding:5px 12px;border-radius:20px;margin:3px;display:inline-block;font-size:12px;font-weight:600;border:1px solid #1e3a5f;">#{tag} <span style="color:#2a5a9f;font-size:10px;">{views_fmt}</span></a>'
 
-    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ TOP HASHTAG VIDEOS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+    # -- TOP HASHTAG VIDEOS --
     ht_videos_html = ""
     for v in top_videos[:4]:
-        thumb_html = f'<img src="{v["thumb"]}" style="width:48px;height:64px;border-radius:6px;object-fit:cover;flex-shrink:0;" />' if v["thumb"] else ""
-        watch_btn  = f'<a href="{v["url"]}" style="display:inline-block;padding:3px 8px;background:#1e2028;border-radius:5px;font-size:10px;color:#60a5fa;font-weight:600;">ÃÂ¢ÃÂÃÂ¶ Watch</a>' if v["url"] else ""
-        fans_fmt   = f"{v['fans']/1000:.0f}K" if v["fans"] >= 1000 else str(v["fans"])
+        watch = f'<a href="{v["url"]}" class="watch-btn">Watch</a>' if v.get("url") else ""
+        fans_fmt = f"{v['fans']/1000:.0f}K" if v.get("fans", 0) >= 1000 else str(v.get("fans", 0))
+        sound_l = f'<div style="font-size:10px;color:#4a5570;">Sound: {v["sound"]}</div>' if v.get("sound") else ""
+        vp = v.get("plays", 0)
         ht_videos_html += f"""
-        <div style="display:flex;gap:10px;margin-bottom:10px;background:#0d0f14;border-radius:8px;padding:8px;">
-          {thumb_html}
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:11px;color:#bbb;margin-bottom:4px;">#{v['tag']} ÃÂÃÂ· @{v['author']} ({fans_fmt} followers)</div>
-            <div style="font-size:12px;color:#e8e8e8;margin-bottom:4px;line-height:1.4;">{v['desc']}</div>
-            <div class="stat"><strong style="color:#4ade80;">{v['plays']:,} plays</strong> ÃÂÃÂ· {v['shares']:,} shares</div>
-            {f'<div class="stat">ÃÂ°ÃÂÃÂÃÂµ {v["sound"]}</div>' if v["sound"] else ""}
-            {watch_btn}
-          </div>
+        <div style="background:#0d1018;border-radius:8px;padding:10px;margin-bottom:8px;">
+          <div style="font-size:11px;color:#4a5570;margin-bottom:4px;">#{v["tag"]} &nbsp;&bull;&nbsp; <a href="https://www.tiktok.com/@{v["author"]}" style="color:#4a9eff;">@{v["author"]}</a> ({fans_fmt} followers)</div>
+          <div style="font-size:12px;color:#c4c8d0;margin-bottom:4px;line-height:1.4;">{v["desc"]}</div>
+          <div style="font-size:12px;font-weight:700;color:{plays_color(vp)};">{fmt_plays(vp)} views</div>
+          {sound_l}
+          {watch}
         </div>"""
 
-    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ VIDEO IDEAS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+    # -- VIDEO IDEAS --
     ideas_html = ""
     for idea in ideas:
-        p_color = "#f87171" if "URGENT" in idea["priority"] else "#fbbf24" if "HOT" in idea["priority"] else "#666"
-        inspo_link = f' <a href="{idea["inspo_url"]}" style="color:#60a5fa;font-size:10px;">ÃÂ¢ÃÂÃÂ¶ Watch inspo</a>' if idea.get("inspo_url") else ""
+        p_color = "#f87171" if idea["priority"] == "URGENT" else "#fbbf24" if idea["priority"] == "HOT" else "#4a9eff"
+        p_label = idea["priority"]
+        inspo_link = f' <a href="{idea["inspo_url"]}" class="watch-btn">Watch inspo</a>' if idea.get("inspo_url") else ""
         ideas_html += f"""
-        <div style="border-left:3px solid {p_color};padding:10px 14px;margin-bottom:10px;background:#0d0f14;border-radius:0 8px 8px 0;">
-          <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;letter-spacing:.5px;">{idea['priority']} ÃÂÃÂ· {idea['pillar']}{idea['inspo']}{inspo_link}</div>
-          <div style="font-size:13px;color:#e8e8e8;margin-bottom:6px;line-height:1.5;">{idea['idea']}</div>
-          <div style="font-size:10px;color:#555;">ÃÂ°ÃÂÃÂÃÂµ Use: <strong style="color:#888;">{idea['sound']}</strong> &nbsp;ÃÂÃÂ·&nbsp; {idea['hashtags']}</div>
+        <div style="border-left:3px solid {p_color};padding:10px 14px;margin-bottom:10px;background:#0d1018;border-radius:0 8px 8px 0;">
+          <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;letter-spacing:.5px;">{p_label} &bull; {idea["pillar"]}{idea.get("inspo","")}{inspo_link}</div>
+          <div style="font-size:13px;color:#d4d8e0;margin-bottom:6px;line-height:1.5;">{idea["idea"]}</div>
+          <div style="font-size:10px;color:#4a5570;">Sound: <strong style="color:#8a9ab0;">{idea["sound"]}</strong> &nbsp;&bull;&nbsp; {idea["hashtags"]}</div>
         </div>"""
 
-    top_sound_link = f'<a href="{top["link"]}" style="color:#4ade80;text-decoration:underline;">"{top["title"]}"</a>' if top.get("link") else f'"{top["title"]}"'
+    top_sound_name = top.get("title", "--")
+    top_sound_link = f'<a href="{top["link"]}" style="color:#4ade80;text-decoration:underline;">{top_sound_name}</a>' if top.get("link") else f'"{top_sound_name}"'
 
     html = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8"><style>{email_style()}</style></head><body>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>{email_style()}</style></head><body>
 
-<div style="background:linear-gradient(135deg,#0d1117,#161b22);border-radius:16px;padding:24px;margin-bottom:14px;text-align:center;border:1px solid #21262d;">
-  <div style="font-size:40px;margin-bottom:8px;">ÃÂ°ÃÂÃÂÃÂ</div>
-  <h1 style="font-size:22px;font-weight:900;color:#fff;margin-bottom:4px;">Good Morning, Joshua</h1>
-  <p style="color:#666;font-size:13px;">6AM Football Trend Brief &nbsp;ÃÂÃÂ·&nbsp; {date_str}</p>
+<div style="background:linear-gradient(135deg,#0d1117,#111a2e);border-radius:16px;padding:24px;margin-bottom:14px;text-align:center;border:1px solid #1c2a45;">
+  <div style="font-size:36px;margin-bottom:8px;">Football</div>
+  <h1 style="font-size:22px;font-weight:900;color:#e8ecf4;margin-bottom:4px;">Good Morning, Joshua</h1>
+  <p style="color:#4a5570;font-size:13px;">6AM Football Trend Brief &nbsp;&bull;&nbsp; {date_str}</p>
+  <div style="margin-top:12px;background:#0d1018;border-radius:8px;padding:10px;font-size:13px;color:#4a9eff;font-weight:600;">
+    Best time to post today: {post_time}
+  </div>
 </div>
 
-<div style="background:#0a1f0a;border:1px solid #166534;border-radius:12px;padding:18px;margin-bottom:14px;">
-  <h2 style="color:#4ade80;">ÃÂ¢ÃÂÃÂ¡ Your Move Today</h2>
-  <p style="font-size:14px;margin-bottom:8px;line-height:1.6;"><strong>Hottest sound right now:</strong> {top_sound_link}</p>
-  <p style="font-size:13px;color:#bbb;line-height:1.6;"><strong style="color:#fff;">Post idea:</strong> Film a DB press coverage drill. Name a specific WR or school you're preparing for in the caption.</p>
-  <p style="font-size:12px;color:#555;margin-top:8px;">ÃÂ°ÃÂÃÂÃÂ Best posting window: 6ÃÂ¢ÃÂÃÂ9PM ET tonight</p>
+<div style="background:#0a1828;border:1px solid #1e3a5f;border-radius:12px;padding:18px;margin-bottom:14px;">
+  <h2 style="color:#4a9eff;">Your Move Today</h2>
+  <p style="font-size:14px;margin-bottom:8px;line-height:1.6;"><strong style="color:#e8ecf4;">Hottest sound right now:</strong> {top_sound_link}</p>
+  <p style="font-size:13px;color:#8a9ab0;line-height:1.6;"><strong style="color:#d4d8e0;">Post idea:</strong> Film a DB press coverage drill. Name a specific WR or school you're preparing for in the caption.</p>
 </div>
 
 <div class="card">
-  <h2>ÃÂ°ÃÂÃÂÃÂ¯ Video Ideas For Today</h2>
+  <h2>Video Ideas For Today</h2>
   {ideas_html}
 </div>
 
 <div class="card">
-  <h2>ÃÂ°ÃÂÃÂÃÂµ Trending Sounds ÃÂ¢ÃÂÃÂ Color Coded For You</h2>
-  <div style="font-size:10px;color:#555;margin-bottom:10px;">ÃÂ°ÃÂÃÂÃÂ¢ Football/DB &nbsp;ÃÂÃÂ·&nbsp; ÃÂ°ÃÂÃÂÃÂ¡ Workout/Hype &nbsp;ÃÂÃÂ·&nbsp; ÃÂ°ÃÂÃÂÃÂµ Sport &nbsp;ÃÂÃÂ·&nbsp; ÃÂ¢ÃÂÃÂª General</div>
+  <h2>Niche Sounds Going Viral (30K+ plays)</h2>
+  <div style="display:flex;gap:16px;margin-bottom:12px;font-size:10px;color:#4a5570;">
+    <span><span style="color:#f87171;font-weight:700;">RED</span> = 500K+ (MEGA)</span>
+    <span><span style="color:#fbbf24;font-weight:700;">AMBER</span> = 100K+ (VIRAL)</span>
+    <span><span style="color:#4a9eff;font-weight:700;">BLUE</span> = 30K+ (HOT)</span>
+  </div>
   {sound_rows}
 </div>
 
 <div class="card">
-  <h2>ÃÂ°ÃÂÃÂÃÂÃÂ¯ÃÂ¸ÃÂ Creator Spy</h2>
-  <div style="font-size:11px;color:#555;margin-bottom:12px;">ÃÂ°ÃÂÃÂÃÂ± Emerging creators first ÃÂÃÂ· ÃÂ¢ÃÂÃÂ¡ Large shown last for reference</div>
-  {creator_html}
+  <h2>Creator Spotlight (Emerging First)</h2>
+  <div style="font-size:11px;color:#4a5570;margin-bottom:12px;">Tracking small creators posting football content -- same niche as you</div>
+  {spotlight_html}
 </div>
 
 <div class="card">
-  <h2>ÃÂ°ÃÂÃÂÃÂ·ÃÂ¯ÃÂ¸ÃÂ Trending Hashtags</h2>
+  <h2>Trending Hashtags</h2>
   {ht_html}
-  {('<hr class="divider"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;">ÃÂ°ÃÂÃÂÃÂ¥ Top Videos Under These Hashtags</div>' + ht_videos_html) if ht_videos_html else ""}
+  {('<hr class="divider"><div style="font-size:12px;font-weight:700;color:#d4d8e0;margin:12px 0 10px;">Top Videos Under These Hashtags</div>' + ht_videos_html) if ht_videos_html else ""}
 </div>
 
-<p style="text-align:center;font-size:10px;color:#333;padding:16px 0;">Football Trend Agent &nbsp;ÃÂÃÂ·&nbsp; 6AM Brief &nbsp;ÃÂÃÂ·&nbsp; therealjoshjames22@gmail.com</p>
+<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent &nbsp;&bull;&nbsp; 6AM Brief &nbsp;&bull;&nbsp; therealjoshjames22@gmail.com</p>
 </body></html>"""
     return html
 
 
 def build_afternoon_email(sounds, creators, top_videos, ideas, date_str):
-    urgent      = [i for i in ideas if "URGENT" in i["priority"] or "HOT" in i["priority"]]
-    new_viral   = [v for c in creators for v in c["videos"] if v["viral"]]
+    post_time   = best_post_time()
+    urgent      = [i for i in ideas if i["priority"] in ("URGENT", "HOT")]
+    new_viral   = [v for c in creators for v in c["videos"] if v.get("viral")]
 
     viral_html = ""
     for v in new_viral[:5]:
-        watch_btn = f'<a href="{v["url"]}" style="display:inline-block;padding:3px 8px;background:#1e2028;border-radius:5px;font-size:10px;color:#60a5fa;font-weight:600;margin-top:4px;">ÃÂ¢ÃÂÃÂ¶ Watch on TikTok</a>' if v["url"] else ""
+        vp     = v.get("plays", 0)
+        watch  = f'<a href="{v["url"]}" class="watch-btn">Watch on TikTok</a>' if v.get("url") else ""
+        reason = f'<div style="font-size:10px;color:#4a9eff;margin-top:3px;">{v["viral_reason"]}</div>' if v.get("viral_reason") else ""
         viral_html += f"""
-        <div style="padding:10px 0;border-bottom:1px solid #1e2028;">
-          <div style="font-size:13px;"><strong style="color:#4ade80;">{v['plays']:,} plays</strong> ÃÂ¢ÃÂÃÂ {v['desc'][:70]}</div>
-          {f'<div class="stat" style="margin-top:2px;">{v["viral_reason"]}</div>' if v["viral_reason"] else ""}
-          {watch_btn}
+        <div style="padding:10px 0;border-bottom:1px solid #1c2235;">
+          <div style="font-size:13px;font-weight:600;color:{plays_color(vp)};">{fmt_plays(vp)} views</div>
+          <div style="font-size:12px;color:#8a9ab0;margin-top:2px;">{v["desc"][:70]}</div>
+          {reason}
+          {watch}
         </div>"""
     if not viral_html:
-        viral_html = '<p style="font-size:13px;color:#444;">No major viral spikes since this morning.</p>'
+        viral_html = '<p style="font-size:13px;color:#333;">No major viral spikes since this morning.</p>'
 
     ideas_html = ""
     for idea in (urgent or ideas[:3]):
-        p_color = "#f87171" if "URGENT" in idea["priority"] else "#fbbf24"
-        inspo_link = f' <a href="{idea["inspo_url"]}" style="color:#60a5fa;font-size:10px;">ÃÂ¢ÃÂÃÂ¶ Watch inspo</a>' if idea.get("inspo_url") else ""
+        p_color = "#f87171" if idea["priority"] == "URGENT" else "#fbbf24"
+        inspo_link = f' <a href="{idea["inspo_url"]}" class="watch-btn">Watch inspo</a>' if idea.get("inspo_url") else ""
         ideas_html += f"""
-        <div style="border-left:3px solid {p_color};padding:10px 14px;margin-bottom:10px;background:#0d0f14;border-radius:0 8px 8px 0;">
-          <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;">{idea['priority']} ÃÂÃÂ· {idea['pillar']}{inspo_link}</div>
-          <div style="font-size:13px;color:#e8e8e8;margin-bottom:4px;">{idea['idea']}</div>
-          <div style="font-size:10px;color:#555;">ÃÂ°ÃÂÃÂÃÂµ {idea['sound']}</div>
+        <div style="border-left:3px solid {p_color};padding:10px 14px;margin-bottom:10px;background:#0d1018;border-radius:0 8px 8px 0;">
+          <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;">{idea["priority"]} &bull; {idea["pillar"]}{inspo_link}</div>
+          <div style="font-size:13px;color:#d4d8e0;margin-bottom:4px;">{idea["idea"]}</div>
+          <div style="font-size:10px;color:#4a5570;">Sound: {idea["sound"]}</div>
         </div>"""
 
     html = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8"><style>{email_style()}</style></head><body>
-<div style="background:linear-gradient(135deg,#0d1a0d,#162416);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;border:1px solid #166534;">
-  <div style="font-size:32px;margin-bottom:6px;">ÃÂ°ÃÂÃÂÃÂ</div>
-  <h1 style="font-size:20px;font-weight:900;color:#fff;">Afternoon Update</h1>
-  <p style="color:#555;font-size:12px;">2PM Trend Check &nbsp;ÃÂÃÂ·&nbsp; {date_str}</p>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>{email_style()}</style></head><body>
+<div style="background:linear-gradient(135deg,#0d1117,#111a2e);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;border:1px solid #1c2a45;">
+  <div style="font-size:28px;margin-bottom:6px;">Afternoon Update</div>
+  <h1 style="font-size:20px;font-weight:900;color:#e8ecf4;">Trend Check</h1>
+  <p style="color:#4a5570;font-size:12px;">2PM &nbsp;&bull;&nbsp; {date_str}</p>
+  <div style="margin-top:10px;background:#0d1018;border-radius:8px;padding:8px;font-size:12px;color:#4a9eff;">Post window tonight: {post_time}</div>
 </div>
 <div class="card">
-  <h2>ÃÂ°ÃÂÃÂÃÂ¥ Viral Right Now ÃÂ¢ÃÂÃÂ Post Before It Peaks</h2>
+  <h2>Viral Right Now -- Post Before It Peaks</h2>
   {viral_html}
 </div>
 <div class="card">
-  <h2>ÃÂ°ÃÂÃÂÃÂ¯ Top Ideas This Afternoon</h2>
+  <h2>Top Ideas This Afternoon</h2>
   {ideas_html}
 </div>
-<p style="text-align:center;font-size:10px;color:#333;padding:16px 0;">Football Trend Agent &nbsp;ÃÂÃÂ·&nbsp; 2PM Brief &nbsp;ÃÂÃÂ·&nbsp; therealjoshjames22@gmail.com</p>
+<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent &nbsp;&bull;&nbsp; 2PM Brief &nbsp;&bull;&nbsp; therealjoshjames22@gmail.com</p>
 </body></html>"""
     return html
 
 
 def build_night_email(sounds, creators, ideas, date_str):
-    viral_today  = [v for c in creators for v in c["videos"] if v["viral"]]
-    top_sound    = sounds[0] if sounds else {"title": "ÃÂ¢ÃÂÃÂ", "link": ""}
+    viral_today = [v for c in creators for v in c["videos"] if v.get("viral")]
+    top_sound   = sounds[0] if sounds else {"title": "--", "link": ""}
 
     recap_html = ""
     for v in viral_today[:5]:
-        watch_btn = f'<a href="{v["url"]}" style="display:inline-block;padding:3px 8px;background:#1e2028;border-radius:5px;font-size:10px;color:#60a5fa;font-weight:600;margin-top:4px;">ÃÂ¢ÃÂÃÂ¶ Watch</a>' if v["url"] else ""
+        vp    = v.get("plays", 0)
+        watch = f'<a href="{v["url"]}" class="watch-btn">Watch</a>' if v.get("url") else ""
         recap_html += f"""
-        <div style="padding:10px 0;border-bottom:1px solid #1e2028;">
-          <div style="font-size:13px;"><strong style="color:#4ade80;">{v['plays']:,} plays</strong> ÃÂ¢ÃÂÃÂ {v['desc'][:70]}</div>
-          {watch_btn}
+        <div style="padding:10px 0;border-bottom:1px solid #1c2235;">
+          <div style="font-size:13px;font-weight:600;color:{plays_color(vp)};">{fmt_plays(vp)} views</div>
+          <div style="font-size:12px;color:#8a9ab0;margin-top:2px;">{v["desc"][:70]}</div>
+          {watch}
         </div>"""
     if not recap_html:
-        recap_html = '<p style="font-size:13px;color:#444;">No major viral content today in your niche.</p>'
+        recap_html = '<p style="font-size:13px;color:#333;">No major viral content today in your niche.</p>'
 
     tomorrow_html = ""
     for idea in ideas[:4]:
         tomorrow_html += f"""
-        <div style="border-left:3px solid #60a5fa;padding:10px 14px;margin-bottom:10px;background:#0d0f14;border-radius:0 8px 8px 0;">
-          <div style="font-size:10px;font-weight:700;color:#60a5fa;margin-bottom:4px;letter-spacing:.5px;">{idea['pillar']}</div>
-          <div style="font-size:13px;color:#e8e8e8;margin-bottom:4px;">{idea['idea']}</div>
-          <div style="font-size:10px;color:#555;">ÃÂ°ÃÂÃÂÃÂµ {idea['sound']} &nbsp;ÃÂÃÂ·&nbsp; {idea['hashtags']}</div>
+        <div style="border-left:3px solid #4a9eff;padding:10px 14px;margin-bottom:10px;background:#0d1018;border-radius:0 8px 8px 0;">
+          <div style="font-size:10px;font-weight:700;color:#4a9eff;margin-bottom:4px;letter-spacing:.5px;">{idea["pillar"]}</div>
+          <div style="font-size:13px;color:#d4d8e0;margin-bottom:4px;">{idea["idea"]}</div>
+          <div style="font-size:10px;color:#4a5570;">Sound: {idea["sound"]} &nbsp;&bull;&nbsp; {idea["hashtags"]}</div>
         </div>"""
 
-    top_sound_link = f'<a href="{top_sound["link"]}" style="color:#4ade80;">{top_sound["title"]}</a>' if top_sound.get("link") else top_sound["title"]
+    ts_name = top_sound.get("title", "--")
+    top_sound_link = f'<a href="{top_sound["link"]}" style="color:#4a9eff;">{ts_name}</a>' if top_sound.get("link") else ts_name
 
     html = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8"><style>{email_style()}</style></head><body>
-<div style="background:linear-gradient(135deg,#0a0a14,#0f0f1e);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;border:1px solid #21262d;">
-  <div style="font-size:32px;margin-bottom:6px;">ÃÂ°ÃÂÃÂÃÂ</div>
-  <h1 style="font-size:20px;font-weight:900;color:#fff;">Night Brief</h1>
-  <p style="color:#555;font-size:12px;">9PM Recap &nbsp;ÃÂÃÂ·&nbsp; {date_str}</p>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>{email_style()}</style></head><body>
+<div style="background:linear-gradient(135deg,#0a0c14,#0f1228);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;border:1px solid #1c2235;">
+  <div style="font-size:28px;margin-bottom:6px;">Night Brief</div>
+  <h1 style="font-size:20px;font-weight:900;color:#e8ecf4;">Today in Review</h1>
+  <p style="color:#4a5570;font-size:12px;">9PM &nbsp;&bull;&nbsp; {date_str}</p>
 </div>
 <div class="card">
-  <h2>ÃÂ°ÃÂÃÂÃÂ What Went Viral In Your Niche Today</h2>
+  <h2>What Went Viral In Your Niche Today</h2>
   {recap_html}
 </div>
 <div class="card">
-  <h2>ÃÂ°ÃÂÃÂÃÂÃÂ¯ÃÂ¸ÃÂ Tomorrow's Content Plan</h2>
+  <h2>Tomorrow's Content Plan</h2>
   {tomorrow_html}
 </div>
-<div style="background:#0a1f0a;border:1px solid #166534;border-radius:12px;padding:16px;margin-bottom:14px;">
-  <h2 style="color:#4ade80;">ÃÂ°ÃÂÃÂÃÂµ Use This Sound Tomorrow</h2>
-  <p style="font-size:14px;line-height:1.6;">{top_sound_link} ÃÂ¢ÃÂÃÂ post with this first thing in the morning for max reach</p>
+<div style="background:#0a1828;border:1px solid #1e3a5f;border-radius:12px;padding:16px;margin-bottom:14px;">
+  <h2 style="color:#4a9eff;">Use This Sound Tomorrow</h2>
+  <p style="font-size:14px;line-height:1.6;">{top_sound_link} -- post first thing in the morning for max reach</p>
 </div>
-<p style="text-align:center;font-size:10px;color:#333;padding:16px 0;">Football Trend Agent &nbsp;ÃÂÃÂ·&nbsp; 9PM Brief &nbsp;ÃÂÃÂ·&nbsp; therealjoshjames22@gmail.com</p>
+<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent &nbsp;&bull;&nbsp; 9PM Brief &nbsp;&bull;&nbsp; therealjoshjames22@gmail.com</p>
 </body></html>"""
     return html
 
 
-# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ EMAIL SENDER ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+# -- EMAIL SENDER ----------------------------------------------------
 def send_email(subject, html_body):
     if not EMAIL_PASSWORD:
-        print(f"[WARN] No EMAIL_PASSWORD ÃÂ¢ÃÂÃÂ skipping send. Subject: {subject}")
+        print(f"[WARN] No EMAIL_PASSWORD -- skipping send. Subject: {subject}")
         return
     try:
         msg            = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"]    = EMAIL_FROM
         msg["To"]      = EMAIL_TO
-        msg.attach(MIMEText(html_body, "html"))
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
             s.login(EMAIL_FROM, EMAIL_PASSWORD)
             s.sendmail(EMAIL_FROM, EMAIL_TO, msg.as_string())
-        print(f"[ÃÂ¢ÃÂÃÂ] Email sent: {subject}")
+        print(f"[OK] Email sent: {subject}")
     except Exception as e:
         print(f"[ERROR] Email failed: {e}")
 
 
-# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ WRITE DATA.JSON (dashboard reads this on load) ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+# -- WRITE DATA.JSON -------------------------------------------------
 def write_data_json(sounds, creators, tags, top_videos, ideas):
-    """Write fresh scan data to data.json so the dashboard is always current."""
     now = datetime.utcnow().isoformat() + "Z"
-
-    # Breakout alert: any video with 50K+ views posted in last 6 hours
     six_hrs_ago = time.time() - 6 * 3600
     breakouts = []
     for v in top_videos:
-        ct = v.get("createTime", 0)
+        ct    = v.get("createTime", 0)
         plays = v.get("playCount", 0) or v.get("stats", {}).get("playCount", 0)
         if ct > six_hrs_ago and plays >= 50000:
             breakouts.append({
@@ -781,70 +878,52 @@ def write_data_json(sounds, creators, tags, top_videos, ideas):
         "lastUpdated": now,
         "briefType":  BRIEF_TYPE,
         "sounds": [
-            {
-                "title":     s.get("title", s.get("soundTitle", "")),
-                "author":    s.get("author", s.get("artistName", "")),
-                "rank":      s.get("rank", 0),
-                "rank_diff": s.get("rank_diff", 0),
-                "cover":     s.get("cover", ""),
-                "link":      s.get("link", ""),
-                "trend":     s.get("trend", []),
-            }
+            {"title": s.get("title",""), "author": s.get("author",""),
+             "rank": s.get("rank",0), "rank_diff": s.get("rank_diff",0),
+             "cover": s.get("cover",""), "link": s.get("link",""),
+             "trend": s.get("trend",[]), "maxPlays": s.get("maxPlays",0)}
             for s in sounds[:20]
         ],
         "creators": [
-            {
-                "handle":   c.get("handle", ""),
-                "size":     c.get("size", ""),
-                "fans":     c.get("fans", 0),
-                "maxPlays": c.get("maxPlays", 0),
-                "topVideo": c.get("topVideo", ""),
-                "topSound": c.get("topSound", ""),
-                "topDesc":  c.get("topDesc", ""),
-            }
+            {"handle": c.get("handle",""), "size": c.get("size",""),
+             "fans": c.get("fans",0), "maxPlays": c.get("maxPlays",0),
+             "topVideo": c.get("topVideo",""), "topSound": c.get("topSound",""),
+             "topDesc": c.get("topDesc","")}
             for c in creators[:15]
         ],
         "hashtags":  tags[:15],
         "topVideos": [
-            {
-                "handle":     v.get("authorMeta", {}).get("name", ""),
-                "fans":       v.get("authorMeta", {}).get("fans", 0),
-                "plays":      v.get("playCount", 0),
-                "desc":       v.get("text", v.get("desc", ""))[:120],
-                "sound":      v.get("musicMeta", {}).get("musicName", ""),
-                "url":        v.get("webVideoUrl", ""),
-                "thumb":      v.get("videoMeta", {}).get("coverUrl", ""),
-                "createTime": v.get("createTime", 0),
-            }
+            {"handle": v.get("authorMeta",{}).get("name",""),
+             "fans": v.get("authorMeta",{}).get("fans",0),
+             "plays": v.get("playCount",0),
+             "desc": v.get("text", v.get("desc",""))[:120],
+             "sound": v.get("musicMeta",{}).get("musicName",""),
+             "url": v.get("webVideoUrl",""),
+             "thumb": v.get("videoMeta",{}).get("coverUrl",""),
+             "createTime": v.get("createTime",0)}
             for v in top_videos[:20]
         ],
         "breakouts": breakouts,
         "ideas":     ideas[:5],
     }
-
-    import os as _os
-    _path = _os.path.abspath("data.json")
-    print(f"  [DEBUG] Writing to {_path}")
     with open("data.json", "w") as f:
         json.dump(data, f, indent=2)
-    _sz = _os.path.getsize(_path)
-    print(f"  [DEBUG] Wrote {_sz} bytes to {_path}")
-    print(f"[ÃÂ¢ÃÂÃÂ] data.json written ÃÂ¢ÃÂÃÂ {len(sounds)} sounds, {len(creators)} creators, {len(breakouts)} breakouts")
+    print(f"[OK] data.json written -- {len(sounds)} sounds, {len(creators)} creators, {len(breakouts)} breakouts")
 
 
-# ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ MAIN ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+# -- MAIN ------------------------------------------------------------
 def main():
     date_str = datetime.now().strftime("%A, %B %-d %Y")
     brief    = BRIEF_TYPE.lower()
 
     print(f"\n{'='*52}")
-    print(f"Football Trend Agent v3 ÃÂ¢ÃÂÃÂ {brief.upper()} RUN")
+    print(f"Football Trend Agent v4 -- {brief.upper()} RUN")
     print(f"{date_str}")
     print(f"{'='*52}\n")
 
     # Afternoon/night reuse morning data to save Apify credits
-    if brief in ("afternoon", "night", "scan") and os.path.exists("data.json"):
-        print("  Reusing cached data.json (no new Apify call)...")
+    if brief in ("afternoon", "night") and os.path.exists("data.json"):
+        print("  Reusing cached data.json (no new Apify call needed)...")
         with open("data.json") as f:
             cached = json.load(f)
         sounds     = cached.get("sounds", [])
@@ -857,51 +936,50 @@ def main():
         sounds           = fetch_trending_sounds(raw)
         creators         = fetch_creator_spy(raw)
         tags, top_videos = fetch_hashtags(raw)
-        # Fall back to curated data if Apify returned nothing
         if not sounds:
-            print("  [FALLBACK] Using curated sounds")
+            print("  [FALLBACK] Using curated sounds (Apify returned 0)"
             sounds = FALLBACK_SOUNDS
         if not creators:
-            print("  [FALLBACK] Using curated creators")
+            print("  [FALLBACK] Using curated creators (Apify returned 0)")
             creators = FALLBACK_CREATORS
         if not tags:
             print("  [FALLBACK] Using curated hashtag data")
             tags = FALLBACK_TAGS
-        ideas            = generate_video_ideas(sounds, creators, top_videos)
+        ideas = generate_video_ideas(sounds, creators, top_videos)
 
     print(f"\n  Sounds: {len(sounds)}  |  Creators: {len(creators)}  |  Tags: {len(tags)}  |  Top videos: {len(top_videos)}\n")
 
-    # Always write data.json ÃÂ¢ÃÂÃÂ dashboard reads this on every load
     write_data_json(sounds, creators, tags, top_videos, ideas)
 
-    # Send full email only on the 3 daily brief times
     if brief in ("morning", "afternoon", "night"):
         if brief == "morning":
             html    = build_morning_email(sounds, creators, tags, top_videos, ideas, date_str)
-            subject = f"ÃÂ°ÃÂÃÂÃÂ Good Morning Joshua ÃÂ¢ÃÂÃÂ Football Brief {date_str}"
+            subject = f"Football Brief -- {date_str}"
         elif brief == "afternoon":
             html    = build_afternoon_email(sounds, creators, top_videos, ideas, date_str)
-            subject = f"ÃÂ°ÃÂÃÂÃÂ Afternoon Update ÃÂ¢ÃÂÃÂ {date_str}"
+            subject = f"Afternoon Update -- {date_str}"
         else:
             html    = build_night_email(sounds, creators, ideas, date_str)
-            subject = f"ÃÂ°ÃÂÃÂÃÂ Night Brief ÃÂ¢ÃÂÃÂ {date_str}"
+            subject = f"Night Brief -- {date_str}"
         send_email(subject, html)
-        print("[ÃÂ¢ÃÂÃÂ] Email sent.\n")
+        print("[OK] Email sent.\n")
     else:
-        # Hourly scan ÃÂ¢ÃÂÃÂ only email if there's a breakout (50K+ views in last 6hrs)
-        if breakouts := json.load(open("data.json")).get("breakouts"):
-            b = breakouts[0]
-            html = f"""<h2>ÃÂ¢ÃÂÃÂ¡ BREAKOUT ALERT</h2>
-            <p><strong>@{b['handle']}</strong> just hit <strong>{b['plays']:,} views</strong> in the last 6 hours.</p>
-            <p>Sound: ÃÂ°ÃÂÃÂÃÂµ {b['sound']}</p>
-            <p>Caption: {b['desc']}</p>
-            <p><a href="{b['url']}">Watch Video ÃÂ¢ÃÂÃÂ</a></p>"""
-            send_email(f"ÃÂ¢ÃÂÃÂ¡ BREAKOUT: @{b['handle']} ÃÂ¢ÃÂÃÂ {b['plays']:,} views right now", html)
-            print(f"[ÃÂ¢ÃÂÃÂ] Breakout alert sent for @{b['handle']}\n")
+        # Hourly scan -- only alert on breakouts
+        data_read = json.load(open("data.json"))
+        if data_read.get("breakouts"):
+            b = data_read["breakouts"][0]
+            html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{{background:#0a0c10;color:#d4d8e0;font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;}}</style></head><body>
+            <h2 style="color:#f87171;">BREAKOUT ALERT</h2>
+            <p><strong style="color:#e8ecf4;">@{b["handle"]}</strong> just hit <strong style="color:#f87171;">{b["plays"]:,} views</strong> in the last 6 hours.</p>
+            <p style="color:#4a5570;">Sound: {b["sound"]}</p>
+            <p style="color:#8a9ab0;">{b["desc"]}</p>
+            <p><a href="{b["url"]}" style="color:#4a9eff;">Watch Video</a></p>
+            </body></html>"""
+            send_email(f"BREAKOUT: @{b['handle']} -- {b['plays']:,} views right now", html)
         else:
-            print("[ÃÂ¢ÃÂÃÂ] Hourly scan complete. No breakouts. data.json updated.\n")
+            print("[OK] Hourly scan complete. No breakouts. data.json updated.\n")
 
-    print("[ÃÂ¢ÃÂÃÂ] Done.\n")
+    print("[OK] Done.\n")
 
 
 if __name__ == "__main__":
