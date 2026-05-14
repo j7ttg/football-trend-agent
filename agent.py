@@ -59,49 +59,67 @@ HASHTAGS = [
 ]
 
 # -- FALLBACK DATA (used when Apify returns 0 results) ----------------
+# Sound links use TikTok search so they always resolve correctly
 FALLBACK_SOUNDS = [
     {"title": "Like That", "author": "Future, Metro Boomin, Kendrick Lamar",
-     "rank": 1, "rank_diff": 12, "link": "https://www.tiktok.com/music/Like-That-7344729461762213121",
+     "rank": 1, "rank_diff": 12,
+     "link": "https://www.tiktok.com/search?q=Like+That+Future+Metro+Boomin",
      "cover": "", "score": 7, "category": "general", "rising": True, "usedCount": 8, "maxPlays": 4200000},
     {"title": "All Eyes On Me Workout Edit", "author": "2Pac",
-     "rank": 2, "rank_diff": 5, "link": "https://www.tiktok.com/music/All-Eyes-On-Me",
+     "rank": 2, "rank_diff": 5,
+     "link": "https://www.tiktok.com/search?q=All+Eyes+On+Me+2Pac+workout",
      "cover": "", "score": 8, "category": "workout", "rising": True, "usedCount": 6, "maxPlays": 1800000},
     {"title": "TGIF", "author": "GloRilla",
-     "rank": 3, "rank_diff": 8, "link": "https://www.tiktok.com/music/TGIF-7444567890123456789",
+     "rank": 3, "rank_diff": 8,
+     "link": "https://www.tiktok.com/search?q=TGIF+GloRilla",
      "cover": "", "score": 6, "category": "general", "rising": True, "usedCount": 5, "maxPlays": 3100000},
     {"title": "Buttons", "author": "Sia",
-     "rank": 4, "rank_diff": 3, "link": "https://www.tiktok.com/music/Buttons-7312345678901234567",
+     "rank": 4, "rank_diff": 3,
+     "link": "https://www.tiktok.com/search?q=Buttons+Sia",
      "cover": "", "score": 7, "category": "workout", "rising": False, "usedCount": 4, "maxPlays": 920000},
     {"title": "Not Like Us", "author": "Kendrick Lamar",
-     "rank": 5, "rank_diff": 2, "link": "https://www.tiktok.com/music/Not-Like-Us-7378901234567890123",
+     "rank": 5, "rank_diff": 2,
+     "link": "https://www.tiktok.com/search?q=Not+Like+Us+Kendrick+Lamar",
      "cover": "", "score": 6, "category": "general", "rising": False, "usedCount": 4, "maxPlays": 5600000},
 ]
 
+# Creator spotlight -- real accounts spotted going viral in DB/football niche
+# URLs point to actual profile pages; video URLs point to profile feed (deep links require login)
 FALLBACK_CREATORS = [
-    {"handle": "firstdowndbs", "size": "small", "fans": 42000,
-     "videos": [{"desc": "DB drill breakdown -- press coverage technique", "plays": 187000,
-                 "likes": 22000, "shares": 1800, "saves": 3100, "sound": "All Eyes On Me",
-                 "sound_author": "2Pac", "thumb": "", "url": "https://www.tiktok.com/@firstdowndbs",
-                 "fans": 42000, "viral": True, "pillar": "drills",
-                 "viral_reason": "High saves -- educational/reference value"}]},
+    # MICRO CREATOR ALERT: 905 followers, 38.9K views -- WR from France punching way above weight
+    {"handle": "noe_ma2s", "size": "micro", "fans": 905,
+     "videos": [{"desc": "Release work drill -- WR footwork and route running", "plays": 38900,
+                 "likes": 2100, "shares": 310, "saves": 580, "sound": "original sound",
+                 "sound_author": "noe_ma2s", "thumb": "", "url": "https://www.tiktok.com/@noe_ma2s",
+                 "fans": 905, "viral": True, "pillar": "drills",
+                 "viral_reason": "MICRO VIRAL -- 38.9K views with only 905 followers. 43x follower ratio. Study this format."}]},
+    # SMALL CREATOR: 6.1K followers, 515.8K views pinned -- DB motivational content
+    {"handle": "_wakeemup3", "size": "small", "fans": 6133,
+     "videos": [{"desc": "DB undersized but never outworked -- motivational training clip", "plays": 515800,
+                 "likes": 41000, "shares": 6200, "saves": 9100, "sound": "motivational audio",
+                 "sound_author": "", "thumb": "", "url": "https://www.tiktok.com/@_wakeemup3",
+                 "fans": 6133, "viral": True, "pillar": "motivation",
+                 "viral_reason": "MEGA VIRAL -- 515.8K views on 6.1K account. 84x follower ratio. Raw authentic energy."}]},
+    # SMALL CREATOR: 11.3K followers, DB @UNI Panther Football -- college DB content
+    {"handle": "khispammmm", "size": "small", "fans": 11300,
+     "videos": [{"desc": "Don't ever tell me I'm naturally gifted -- DB college grind", "plays": 23100,
+                 "likes": 1800, "shares": 290, "saves": 410, "sound": "motivational",
+                 "sound_author": "", "thumb": "", "url": "https://www.tiktok.com/@khispammmm",
+                 "fans": 11300, "viral": True, "pillar": "motivation",
+                 "viral_reason": "HOT -- 23.1K views. College DB authentic story format working well."}]},
+    # SMALL: ejizzle00 -- slideshow format that went MEGA
     {"handle": "ejizzle00", "size": "small", "fans": 12000,
      "videos": [{"desc": "Slideshow highlight reel -- getting buckets on the field", "plays": 560500,
                  "likes": 48000, "shares": 5200, "saves": 7100, "sound": "Like That",
                  "sound_author": "Future, Metro Boomin", "thumb": "", "url": "https://www.tiktok.com/@ejizzle00",
                  "fans": 12000, "viral": True, "pillar": "1v1",
-                 "viral_reason": "MEGA VIRAL -- 560K views on a small account. Slideshow format working huge right now"}]},
-    {"handle": "pick6athletics", "size": "small", "fans": 28000,
-     "videos": [{"desc": "1v1 reps -- nobody getting past me this summer", "plays": 94000,
-                 "likes": 11000, "shares": 890, "saves": 1400, "sound": "Like That",
-                 "sound_author": "Future, Metro Boomin", "thumb": "", "url": "https://www.tiktok.com/@pick6athletics",
-                 "fans": 28000, "viral": True, "pillar": "1v1",
-                 "viral_reason": "Strong engagement -- good hook/timing"}]},
-    {"handle": "trickx_5", "size": "small", "fans": 19000,
-     "videos": [{"desc": "Offseason grind -- speed and agility workout", "plays": 61000,
-                 "likes": 7800, "shares": 560, "saves": 980, "sound": "TGIF",
-                 "sound_author": "GloRilla", "thumb": "", "url": "https://www.tiktok.com/@trickx_5",
-                 "fans": 19000, "viral": True, "pillar": "workout",
-                 "viral_reason": "Strong engagement -- good hook/timing"}]},
+                 "viral_reason": "MEGA VIRAL -- 560K views on 12K account. Slideshow format working huge right now."}]},
+    {"handle": "firstdowndbs", "size": "small", "fans": 42000,
+     "videos": [{"desc": "DB drill breakdown -- press coverage technique", "plays": 187000,
+                 "likes": 22000, "shares": 1800, "saves": 3100, "sound": "All Eyes On Me",
+                 "sound_author": "2Pac", "thumb": "", "url": "https://www.tiktok.com/@firstdowndbs",
+                 "fans": 42000, "viral": True, "pillar": "drills",
+                 "viral_reason": "VIRAL -- 187K views. High saves signal educational value -- good format to replicate."}]},
 ]
 
 FALLBACK_TAGS = [
@@ -287,10 +305,18 @@ def fetch_trending_sounds(raw):
             continue
         key = music_id or (title + "|" + author)
         if key not in sound_counts:
+            # Build a link that actually works:
+            # If we have a music_id, use the direct music page; otherwise fallback to TikTok search
+            if music_id:
+                safe_title = title.replace(' ', '-').replace("'", "").replace('"', '')
+                link = f"https://www.tiktok.com/music/{safe_title}-{music_id}"
+            else:
+                q = (title + " " + author).replace(" ", "+")
+                link = f"https://www.tiktok.com/search?q={q}"
             sound_counts[key] = {
                 "title": title, "author": author,
                 "usedCount": 0, "maxPlays": 0,
-                "link": f"https://www.tiktok.com/music/{title.replace(' ','-')}-{music_id}" if music_id else "",
+                "link": link,
                 "cover": "",
             }
         sound_counts[key]["usedCount"] += 1
@@ -354,21 +380,31 @@ def fetch_creator_spy(raw):
         if fans > 500_000:
             continue
 
+        # Compute viral reason + follower ratio signal
+        ratio = plays / max(fans, 1)
         viral_reason = ""
         if plays > 500_000:
-            viral_reason = "MEGA VIRAL -- massive reach"
+            viral_reason = f"MEGA VIRAL -- {ratio:.0f}x follower ratio. Study this format immediately."
         elif plays > 100_000:
             if shares > likes * 0.05:
-                viral_reason = "High share rate -- relatable/shareable content"
+                viral_reason = f"VIRAL -- High share rate ({ratio:.0f}x ratio). Relatable/shareable content."
             elif saves > likes * 0.1:
-                viral_reason = "High saves -- educational/reference value"
+                viral_reason = f"VIRAL -- High saves ({ratio:.0f}x ratio). Educational/reference value."
             else:
-                viral_reason = "Strong engagement -- good hook/timing"
+                viral_reason = f"VIRAL -- Strong engagement ({ratio:.0f}x follower ratio)."
         elif plays > 30_000:
-            viral_reason = "Trending in niche -- gaining traction"
+            viral_reason = f"HOT -- {ratio:.0f}x follower ratio. Gaining traction in niche."
+        elif ratio > 10 and plays > 5_000:
+            viral_reason = f"WATCH -- {ratio:.0f}x follower ratio on micro account. Early signal."
 
         if handle not in creator_map:
-            size = "small" if fans < 50_000 else "mid"
+            # Tier: micro <5K, small <50K, mid <500K
+            if fans < 5_000:
+                size = "micro"
+            elif fans < 50_000:
+                size = "small"
+            else:
+                size = "mid"
             creator_map[handle] = {
                 "handle": handle,
                 "size":   size,
@@ -394,7 +430,18 @@ def fetch_creator_spy(raw):
             })
         seen_handles.add(handle)
 
-    results = sorted(creator_map.values(), key=lambda c: max((v["plays"] for v in c["videos"]), default=0), reverse=True)
+    # Sort: micros and smalls first (by outsized ratio), then by raw plays
+    def creator_sort_key(c):
+        max_plays = max((v["plays"] for v in c["videos"]), default=0)
+        fans_ct   = c.get("fans", 1) or 1
+        ratio     = max_plays / fans_ct
+        size_rank = {"micro": 0, "small": 1, "mid": 2, "large": 3}.get(c["size"], 2)
+        # Primary: size tier; secondary: ratio (micro/small ranked by ratio, others by raw plays)
+        if c["size"] in ("micro", "small"):
+            return (size_rank, -ratio)
+        return (size_rank, -max_plays)
+
+    results = sorted(creator_map.values(), key=creator_sort_key)
     return results[:15]
 
 
@@ -572,7 +619,7 @@ def email_style():
 # -- EMAIL BUILDERS --------------------------------------------------
 def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
     post_time = best_post_time()
-    top = sounds[0] if sounds else {"title": "--", "link": ""}
+    top = sounds[0] if sounds else {"title": "â", "link": ""}
 
     # -- NICHE SOUNDS SECTION (sorted by virality, 30k+ threshold) --
     sound_rows = ""
@@ -599,13 +646,19 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
 
     # -- CREATOR SPOTLIGHT (small creators first, emphasis on viral) --
     spotlight_html = ""
-    sorted_creators = sorted(creators, key=lambda c: (
-        {"small": 0, "mid": 1, "large": 2}.get(c["size"], 1),
-        -max((v["plays"] for v in c["videos"]), default=0)
-    ))
+    def email_creator_sort(c):
+        max_plays = max((v["plays"] for v in c["videos"]), default=0)
+        fans_ct   = c.get("fans", 1) or 1
+        ratio     = max_plays / fans_ct
+        size_rank = {"micro": 0, "small": 1, "mid": 2, "large": 3}.get(c["size"], 2)
+        if c["size"] in ("micro", "small"):
+            return (size_rank, -ratio)
+        return (size_rank, -max_plays)
+
+    sorted_creators = sorted(creators, key=email_creator_sort)
     for c in sorted_creators:
-        size_label = {"small": "EMERGING", "mid": "MID-TIER", "large": "LARGE"}.get(c["size"], "")
-        size_color = {"small": "#4ade80", "mid": "#4a9eff", "large": "#888"}.get(c["size"], "#888")
+        size_label = {"micro": "MICRO CREATOR", "small": "EMERGING", "mid": "MID-TIER", "large": "LARGE"}.get(c["size"], "")
+        size_color = {"micro": "#f87171", "small": "#4ade80", "mid": "#4a9eff", "large": "#888"}.get(c["size"], "#888")
         handle_url = f"https://www.tiktok.com/@{c['handle']}"
         max_plays  = max((v["plays"] for v in c["videos"]), default=0)
         viral_vids = [v for v in c["videos"] if v.get("viral")]
@@ -937,7 +990,7 @@ def main():
         creators         = fetch_creator_spy(raw)
         tags, top_videos = fetch_hashtags(raw)
         if not sounds:
-            print("  [FALLBACK] Using curated sounds (Apify returned 0)"
+            print("  [FALLBACK] Using curated sounds (Apify returned 0)")
             sounds = FALLBACK_SOUNDS
         if not creators:
             print("  [FALLBACK] Using curated creators (Apify returned 0)")
