@@ -33,7 +33,7 @@ SEVEN_DAYS = 7 * 86400  # seconds
 
 # -- CONTENT PILLARS --------------------------------------------------
 PILLARS = {
-    "1v1":        ["1v1","one on one","lockdown","shutdown","press coverage","man coverage","man coverage","jam","bump","guard","lock"],
+    "1v1":        ["1v1","one on one","lockdown","shutdown","press coverage","man coverage","jam","bump","guard","lock"],
     "drills":     ["drill","technique","route","break","backpedal","hip","turn","db drill","cornerback","footwork","press","off coverage","ladder","cone"],
     "workout":    ["workout","training","speed","agility","strength","lift","gym","combine","40 yard","vertical","explosive","faster"],
     "motivation": ["grind","mindset","motivation","nobody believed","outwork","hunger","dog","dawg","elite","mentality","sacrifice","offseason"]
@@ -59,8 +59,21 @@ CREATORS = [
 HASHTAGS = [
     "footballtraining","dbtraining","cornerback","1v1football",
     "widereceivertraining","footballdrills","footballworkout",
-    "highschoolfootball","collegefootball","defensiveback","7on7"
+    "highschoolfootball","collegefootball","defensiveback","7on7",
+    "cfb","footballtiktok","football","d1","d1athlete",
+    "footballedit","footballhighlight","dblife","nfl","dbcamp"
 ]
+
+# View tier thresholds
+MIN_VIEWS_HARD     = 20_000   # absolute floor -- never show below this
+MIN_VIEWS_FAST_RISE = 10_000  # exception: sub-20K but posted < 24h ago with good ratio
+TIER_ON_THE_RISE   = 20_000   # 20K-45K
+TIER_GOOD_ZONE     = 50_000   # 50K-100K
+TIER_VIRAL         = 100_000  # 100K+
+TIER_MEGA          = 500_000  # 500K+
+
+# Sound virality: must be used in 5+ niche videos within 7 days
+SOUND_MIN_NICHE_VIDS = 5
 
 # -- FALLBACK DATA (used when Apify returns 0 results) ----------------
 FALLBACK_SOUNDS = [
@@ -93,7 +106,7 @@ FALLBACK_CREATORS = [
                  "sound_author": "noe_ma2s", "thumb": "", "url": "https://www.tiktok.com/@noe_ma2s",
                  "fans": 905, "viral": True, "pillar": "drills", "days_ago": 3,
                  "format_type": "Tutorial / Technique Breakdown",
-                 "hook_analysis": "Opens on hands â immediate action, no intro. Short reps, each one clean. This format works because it's specific and repeatable.",
+                 "hook_analysis": "Opens on hands â immediate action, no intro. Short reps, each one clean. This format works because it's ppecific and repeatable.",
                  "copy_this": "Film 3 reps of one specific technique. No talking intro. Start on the movement.",
                  "viral_reason": "MICRO VIRAL -- 38.9K views with only 905 followers. 43x follower ratio. Study this format."}]},
     {"handle": "_wakeemup3", "size": "small", "fans": 6133,
@@ -302,9 +315,10 @@ def fetch_all_raw():
         "hashtags": [
             "footballtraining", "dbtraining", "cornerback",
             "1v1football", "footballdrills", "defensiveback",
-            "footballworkout", "7on7"
+            "footballworkout", "7on7", "cfb", "footballtiktok",
+            "football", "d1", "d1athlete", "footballedit", "dblife"
         ],
-        "resultsPerPage": 15,
+        "resultsPerPage": 20,
         "sortType": "latest",
         "shouldDownloadCovers": False,
         "shouldDownloadVideos": False,
@@ -397,7 +411,10 @@ def fetch_trending_sounds(raw):
 
     sounds = []
     for s in sound_counts.values():
-        if s["maxPlays"] < 30000:
+        # Require: top video has at least 20K plays AND used in 5+ niche videos in 7 days
+        if s["maxPlays"] < MIN_VIEWS_HARD:
+            continue
+        if s["usedCount"] < SOUND_MIN_NICHE_VIDS:
             continue
         sc, cat = score_sound({"title": s["title"], "author": s["author"]})
         sounds.append({
@@ -409,7 +426,7 @@ def fetch_trending_sounds(raw):
             "cover":     s["cover"],
             "score":     sc,
             "category":  cat,
-            "rising":    s["usedCount"] >= 3,
+            "rising":    s["usedCount"] >= 8,   # "rising" = used in 8+ videos
             "usedCount": s["usedCount"],
             "maxPlays":  s["maxPlays"],
         })
@@ -464,21 +481,30 @@ def fetch_creator_spy(raw):
         # Follower ratio
         ratio = plays / max(fans, 1)
 
-        # Viral reason
+        # Hard minimum view gate: skip anything under 20K
+        # Exception: posted < 24h ago AND ratio > 5x AND at least 10K (fast rising)
+        hours_old = (now - create_time) / 3600
+        is_fast_rising = (hours_old < 24 and ratio > 5 and plays >= MIN_VIEWS_FAST_RISE)
+        if plays < MIN_VIEWS_HARD and not is_fast_rising:
+            continue
+
+        # Viral reason with new tier labels
         viral_reason = ""
-        if plays > 500_000:
-            viral_reason = f"MEGA VIRAL -- {ratio:.0f}x follower ratio. Study this format immediately."
-        elif plays > 100_000:
+        if plays >= TIER_MEGA:
+            viral_reason = f"MEGA VIRAL -- {fmt_plays(plays)} views, {ratio:.0f}x follower ratio. Study this format immediately."
+        elif plays >= TIER_VIRAL:
             if shares > likes * 0.05:
-                viral_reason = f"VIRAL -- High share rate ({ratio:.0f}x ratio). Relatable/shareable content."
+                viral_reason = f"VIRAL -- {fmt_plays(plays)} views. High share rate ({ratio:.0f}x ratio). Relatable/shareable content."
             elif saves > likes * 0.1:
-                viral_reason = f"VIRAL -- High saves ({ratio:.0f}x ratio). Educational/reference value."
+                viral_reason = f"VIRAL -- {fmt_plays(plays)} views. High saves ({ratio:.0f}x ratio). Educational/reference value."
             else:
-                viral_reason = f"VIRAL -- Strong engagement ({ratio:.0f}x follower ratio)."
-        elif plays > 30_000:
-            viral_reason = f"HOT -- {ratio:.0f}x follower ratio. Gaining traction in niche."
-        elif ratio > 10 and plays > 5_000:
-            viral_reason = f"WATCH -- {ratio:.0f}x follower ratio on micro account. Early signal."
+                viral_reason = f"VIRAL -- {fmt_plays(plays)} views ({ratio:.0f}x follower ratio). Strong engagement."
+        elif plays >= TIER_GOOD_ZONE:
+            viral_reason = f"GOOD ZONE -- {fmt_plays(plays)} views ({ratio:.0f}x follower ratio). Post your version now."
+        elif plays >= TIER_ON_THE_RISE:
+            viral_reason = f"ON THE RISE -- {fmt_plays(plays)} views ({ratio:.0f}x ratio). Gaining traction."
+        elif is_fast_rising:
+            viral_reason = f"FAST RISING -- {fmt_plays(plays)} views in {hours_old:.0f}h. Watch this one."
 
         # Hook analysis
         fmt_type, hook_analysis, copy_this = analyze_hook(desc, plays, likes, shares, saves)
@@ -498,7 +524,7 @@ def fetch_creator_spy(raw):
             }
 
         # Store up to 5 videos per creator
-        if len(creator_map[handle]["videos"]) < 5:
+        if len(creator_map[handle]["videos"]) < 5 and (plays >= MIN_VIEWS_HARD or is_fast_rising):
             creator_map[handle]["videos"].append({
                 "desc":          desc[:120],
                 "plays":         plays,
@@ -510,7 +536,7 @@ def fetch_creator_spy(raw):
                 "thumb":         thumb,
                 "url":           url,
                 "fans":          fans,
-                "viral":         plays > 30_000,
+                "viral":         plays >= TIER_ON_THE_RISE or is_fast_rising,
                 "pillar":        get_pillar(desc),
                 "days_ago":      days_ago,
                 "create_time":   create_time,
@@ -567,7 +593,7 @@ def fetch_hashtags(raw):
             if tag not in tag_data or plays > tag_data[tag]["top_plays"]:
                 tag_data[tag] = {"views": ht_views, "top_plays": plays}
 
-        if plays > 50_000 and url:
+        if plays >= MIN_VIEWS_HARD and url:
             top_videos.append({
                 "tag":    tag,
                 "desc":   desc[:80],
@@ -653,16 +679,18 @@ def best_post_time():
 
 # -- PLAYS LABEL / COLOR / FORMAT ------------------------------------
 def plays_label(plays):
-    if plays >= 500_000:  return "MEGA"
-    elif plays >= 100_000: return "VIRAL"
-    elif plays >= 30_000:  return "HOT"
-    else:                  return ""
+    if plays >= TIER_MEGA:       return "MEGA"
+    elif plays >= TIER_VIRAL:    return "VIRAL"
+    elif plays >= TIER_GOOD_ZONE: return "GOOD ZONE"
+    elif plays >= TIER_ON_THE_RISE: return "ON THE RISE"
+    else:                        return ""
 
 def plays_color(plays):
-    if plays >= 500_000:  return "#f87171"
-    elif plays >= 100_000: return "#fbbf24"
-    elif plays >= 30_000:  return "#4a9eff"
-    else:                  return "#888888"
+    if plays >= TIER_MEGA:        return "#f87171"    # red
+    elif plays >= TIER_VIRAL:     return "#fbbf24"    # amber
+    elif plays >= TIER_GOOD_ZONE: return "#4ade80"    # green (good zone)
+    elif plays >= TIER_ON_THE_RISE: return "#4a9eff"  # blue (on the rise)
+    else:                         return "#888888"
 
 def fmt_plays(plays):
     if plays >= 1_000_000: return f"{plays/1_000_000:.1f}M"
@@ -683,6 +711,8 @@ def email_style():
     .tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.5px;}
     .tag-mega{background:#2a0a0a;color:#f87171;border:1px solid #7f1d1d;}
     .tag-viral{background:#2a1a00;color:#fbbf24;border:1px solid #78350f;}
+    .tag-goodzone{background:#0a2414;color:#4ade80;border:1px solid #166534;}
+    .tag-rise{background:#0a1a2e;color:#4a9eff;border:1px solid #1e3a5f;}
     .tag-hot{background:#0a1a2e;color:#4a9eff;border:1px solid #1e3a5f;}
     .tag-blue{background:#0a1a2e;color:#4a9eff;border:1px solid #1e3a5f;}
     .tag-green{background:#0a2414;color:#4ade80;border:1px solid #166534;}
@@ -707,7 +737,8 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
         mp      = s.get("maxPlays", 0)
         tier    = plays_label(mp)
         color   = plays_color(mp)
-        tier_badge = f'<span class="tag tag-{"mega" if tier=="MEGA" else "viral" if tier=="VIRAL" else "hot"}" style="font-size:9px;">{tier}</span>' if tier else ""
+        tier_class = {"MEGA": "mega", "VIRAL": "viral", "GOOD ZONE": "goodzone", "ON THE RISE": "rise"}.get(tier, "rise")
+        tier_badge = f'<span class="tag tag-{tier_class}" style="font-size:9px;">{tier}</span>' if tier else ""
         rising_badge = ' <span class="tag tag-green" style="font-size:9px;">RISING</span>' if s.get("rising") else ""
         used   = s.get("usedCount", 0)
         link_o = f'<a href="{s["link"]}" style="color:#d4d8e0;font-weight:600;">' if s.get("link") else '<span style="font-weight:600;">'
@@ -718,8 +749,8 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #151820;">
           <div style="width:32px;text-align:center;font-size:11px;color:#4a5570;font-weight:700;">#{i}</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;white-space:nowraw;overflow:hidden;text-overflow:ellipsis;">{link_o}{s["title"]}{link_c} {tier_badge}{rising_badge}</div>
-            <div style="font-size:11px;color:#4a5570;margin-top:2px;">{s["author"]} &nbsp;&bull;&nbsp; Used in {used} niche videos{tiktok_link}</div>
+            <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{link_o}{s["title"]}{link_c} {tier_badge}{rising_badge}</div>
+            <div style="font-size:11px;color:#4a5570;margin-top:2px;">{s["author"]} &nbsp;&bull;&nbsp; <strong style="color:#8a9ab0;">{used} niche videos</strong> this week{tiktok_link}</div>
           </div>
           <div style="flex-shrink:0;font-size:13px;font-weight:700;color:{color};">{fmt_plays(mp)}</div>
         </div>"""
@@ -760,7 +791,8 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
                 vp       = v.get("plays", 0)
                 vcolor   = plays_color(vp)
                 vtier    = plays_label(vp)
-                vtag     = f'<span class="tag tag-{"mega" if vtier=="MEGA" else "viral" if vtier=="VIRAL" else "hot"}" style="font-size:9px;">{vtier}</span> ' if vtier else ""
+                vtier_class = {"MEGA": "mega", "VIRAL": "viral", "GOOD ZONE": "goodzone", "ON THE RISE": "rise"}.get(vtier, "rise")
+                vtag     = f'<span class="tag tag-{vtier_class}" style="font-size:9px;">{vtier}</span> ' if vtier else ""
                 watch    = f'<a href="{v["url"]}" class="watch-btn">Watch on TikTok â</a>' if v.get("url") else ""
                 reason   = f'<div style="font-size:10px;color:#4a9eff;margin-top:3px;font-weight:600;">{v["viral_reason"]}</div>' if v.get("viral_reason") else ""
                 sound_l  = f'<div style="font-size:10px;color:#4a5570;margin-top:2px;">Sound: <strong style="color:#8a9ab0;">{v["sound"]}</strong></div>' if v.get("sound") else ""
@@ -855,11 +887,12 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
 </div>
 
 <div class="card">
-  <h2>Niche Sounds Going Viral (30K+ plays)</h2>
-  <div style="display:flex;gap:16px;margin-bottom:12px;font-size:10px;color:#4a5570;">
+  <h2>Niche Sounds Going Viral (5+ niche videos, 20K+ plays)</h2>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:10px;color:#4a5570;">
     <span><span style="color:#f87171;font-weight:700;">RED</span> = 500K+ (MEGA)</span>
     <span><span style="color:#fbbf24;font-weight:700;">AMBER</span> = 100K+ (VIRAL)</span>
-    <span><span style="color:#4a9eff;font-weight:700;">BLUE</span> = 30K+ (HOT)</span>
+    <span><span style="color:#4ade80;font-weight:700;">GREEN</span> = 50K-100K (GOOD ZONE)</span>
+    <span><span style="color:#4a9eff;font-weight:700;">BLUE</span> = 20K-45K (ON THE RISE)</span>
   </div>
   {sound_rows}
 </div>
