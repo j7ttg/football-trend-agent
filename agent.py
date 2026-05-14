@@ -1,8 +1,13 @@
 """
-Football Trend Agent v4 -- Blue/gray/black email design, 7-day freshness, virality tiers
-- 6AM: Morning Brief (sounds + creator spy + hashtags + video ideas)
+Football Trend Agent v5 -- Upgraded single agent
+- Runs every 3 hours via GitHub Actions
+- 6AM: Morning Brief (deep creator intel + sounds + hashtags + video ideas)
 - 2PM: Afternoon Idea Refresh
 - 9PM: Night Brief (viral recap + tomorrow's plan)
+- Every other run: quick scan, breakout alerts only
+- Creator deep dive: recent posts only (7-day), sorted by recency then plays
+- sortType:latest on Apify so old viral videos never surface
+- Hook/format analysis on every viral creator video
 Content pillars: 1v1 competition, DB drills, workout/training, motivation
 """
 
@@ -24,12 +29,11 @@ EMAIL_TO       = os.environ.get("EMAIL_TO", "therealjoshjames22@gmail.com")
 BRIEF_TYPE     = os.environ.get("BRIEF_TYPE", "morning")  # morning | afternoon | night | scan
 
 APIFY_BASE = "https://api.apify.com/v2"
-
 SEVEN_DAYS = 7 * 86400  # seconds
 
 # -- CONTENT PILLARS --------------------------------------------------
 PILLARS = {
-    "1v1":        ["1v1","one on one","lockdown","shutdown","press coverage","man coverage","jam","bump","guard","lock"],
+    "1v1":        ["1v1","one on one","lockdown","shutdown","press coverage","man coverage","man coverage","jam","bump","guard","lock"],
     "drills":     ["drill","technique","route","break","backpedal","hip","turn","db drill","cornerback","footwork","press","off coverage","ladder","cone"],
     "workout":    ["workout","training","speed","agility","strength","lift","gym","combine","40 yard","vertical","explosive","faster"],
     "motivation": ["grind","mindset","motivation","nobody believed","outwork","hunger","dog","dawg","elite","mentality","sacrifice","offseason"]
@@ -59,7 +63,6 @@ HASHTAGS = [
 ]
 
 # -- FALLBACK DATA (used when Apify returns 0 results) ----------------
-# Sound links use TikTok search so they always resolve correctly
 FALLBACK_SOUNDS = [
     {"title": "Like That", "author": "Future, Metro Boomin, Kendrick Lamar",
      "rank": 1, "rank_diff": 12,
@@ -83,42 +86,51 @@ FALLBACK_SOUNDS = [
      "cover": "", "score": 6, "category": "general", "rising": False, "usedCount": 4, "maxPlays": 5600000},
 ]
 
-# Creator spotlight -- real accounts spotted going viral in DB/football niche
-# URLs point to actual profile pages; video URLs point to profile feed (deep links require login)
 FALLBACK_CREATORS = [
-    # MICRO CREATOR ALERT: 905 followers, 38.9K views -- WR from France punching way above weight
     {"handle": "noe_ma2s", "size": "micro", "fans": 905,
      "videos": [{"desc": "Release work drill -- WR footwork and route running", "plays": 38900,
                  "likes": 2100, "shares": 310, "saves": 580, "sound": "original sound",
                  "sound_author": "noe_ma2s", "thumb": "", "url": "https://www.tiktok.com/@noe_ma2s",
-                 "fans": 905, "viral": True, "pillar": "drills",
+                 "fans": 905, "viral": True, "pillar": "drills", "days_ago": 3,
+                 "format_type": "Tutorial / Technique Breakdown",
+                 "hook_analysis": "Opens on hands â immediate action, no intro. Short reps, each one clean. This format works because it's specific and repeatable.",
+                 "copy_this": "Film 3 reps of one specific technique. No talking intro. Start on the movement.",
                  "viral_reason": "MICRO VIRAL -- 38.9K views with only 905 followers. 43x follower ratio. Study this format."}]},
-    # SMALL CREATOR: 6.1K followers, 515.8K views pinned -- DB motivational content
     {"handle": "_wakeemup3", "size": "small", "fans": 6133,
      "videos": [{"desc": "DB undersized but never outworked -- motivational training clip", "plays": 515800,
                  "likes": 41000, "shares": 6200, "saves": 9100, "sound": "motivational audio",
                  "sound_author": "", "thumb": "", "url": "https://www.tiktok.com/@_wakeemup3",
-                 "fans": 6133, "viral": True, "pillar": "motivation",
+                 "fans": 6133, "viral": True, "pillar": "motivation", "days_ago": 2,
+                 "format_type": "Raw Authentic Story",
+                 "hook_analysis": "Caption does the heavy lifting -- 'undersized but never outworked' speaks directly to every DB who felt doubted. High shares because people tag their teammates.",
+                 "copy_this": "Lead with your underdog identity in the caption. Raw training footage, no polish. Let the caption create the emotion.",
                  "viral_reason": "MEGA VIRAL -- 515.8K views on 6.1K account. 84x follower ratio. Raw authentic energy."}]},
-    # SMALL CREATOR: 11.3K followers, DB @UNI Panther Football -- college DB content
     {"handle": "khispammmm", "size": "small", "fans": 11300,
      "videos": [{"desc": "Don't ever tell me I'm naturally gifted -- DB college grind", "plays": 23100,
                  "likes": 1800, "shares": 290, "saves": 410, "sound": "motivational",
                  "sound_author": "", "thumb": "", "url": "https://www.tiktok.com/@khispammmm",
-                 "fans": 11300, "viral": True, "pillar": "motivation",
+                 "fans": 11300, "viral": True, "pillar": "motivation", "days_ago": 4,
+                 "format_type": "Authentic Story / Chip on Shoulder",
+                 "hook_analysis": "Direct confrontation hook -- 'don't tell me I'm naturally gifted' triggers anyone who has heard that. College DB angle adds relatability.",
+                 "copy_this": "Start with something someone said about you that made you grind harder. Make the viewer feel that same chip.",
                  "viral_reason": "HOT -- 23.1K views. College DB authentic story format working well."}]},
-    # SMALL: ejizzle00 -- slideshow format that went MEGA
     {"handle": "ejizzle00", "size": "small", "fans": 12000,
      "videos": [{"desc": "Slideshow highlight reel -- getting buckets on the field", "plays": 560500,
                  "likes": 48000, "shares": 5200, "saves": 7100, "sound": "Like That",
                  "sound_author": "Future, Metro Boomin", "thumb": "", "url": "https://www.tiktok.com/@ejizzle00",
-                 "fans": 12000, "viral": True, "pillar": "1v1",
+                 "fans": 12000, "viral": True, "pillar": "1v1", "days_ago": 1,
+                 "format_type": "Slideshow Highlight Reel",
+                 "hook_analysis": "Slideshow format is low effort to make but high engagement -- people swipe through and rewatch. 'Like That' beat matches the confident energy. High saves = people coming back to study clips.",
+                 "copy_this": "Pick 5-8 of your best clips. Slideshow format, no editing needed. Use a hard-hitting sound. Caption = your record or stats.",
                  "viral_reason": "MEGA VIRAL -- 560K views on 12K account. Slideshow format working huge right now."}]},
     {"handle": "firstdowndbs", "size": "small", "fans": 42000,
      "videos": [{"desc": "DB drill breakdown -- press coverage technique", "plays": 187000,
                  "likes": 22000, "shares": 1800, "saves": 3100, "sound": "All Eyes On Me",
                  "sound_author": "2Pac", "thumb": "", "url": "https://www.tiktok.com/@firstdowndbs",
-                 "fans": 42000, "viral": True, "pillar": "drills",
+                 "fans": 42000, "viral": True, "pillar": "drills", "days_ago": 2,
+                 "format_type": "Educational Drill Breakdown",
+                 "hook_analysis": "High saves (3.1K) signal people are bookmarking this to use later -- that's the educational content signal. Saves drive the algorithm harder than likes for this content type.",
+                 "copy_this": "Teach one specific technique. Name it. Show it 3 ways. Saves will carry the reach.",
                  "viral_reason": "VIRAL -- 187K views. High saves signal educational value -- good format to replicate."}]},
 ]
 
@@ -161,9 +173,62 @@ IDEA_TEMPLATES = {
     ]
 }
 
+# -- HOOK / FORMAT ANALYSIS -------------------------------------------
+FORMAT_SIGNALS = {
+    "Tutorial / Technique Breakdown": ["drill","technique","how to","breakdown","tutorial","step","tip","fix","teach","learn","form"],
+    "Raw Authentic Story":            ["story","nobody","never","told me","they said","doubted","grind","real","honest","truth","journey"],
+    "Slideshow Highlight Reel":       ["highlights","reel","clips","best","top","season","game","plays","comp"],
+    "1v1 / Challenge":                ["1v1","challenge","guard me","stop me","lock","shut down","vs","versus","battle"],
+    "Day in the Life / Vlog":         ["day in","vlog","morning","routine","daily","wake up","schedule","life of"],
+    "Motivational / Chip on Shoulder":["motivated","chip","underrated","sleep on","prove","doubters","outwork","mentality","mindset","grind"],
+    "Workout / Training Footage":     ["workout","training","gym","lift","speed","agility","reps","sets","session","combine"],
+}
+
+def analyze_hook(desc, plays, likes, shares, saves):
+    """Infer format type and generate a 'copy this' note from video metadata."""
+    desc_lower = (desc or "").lower()
+
+    # Detect format
+    fmt = "Raw Training Footage"
+    for format_name, signals in FORMAT_SIGNALS.items():
+        if any(s in desc_lower for s in signals):
+            fmt = format_name
+            break
+
+    # Engagement signals
+    notes = []
+    if saves > 0 and likes > 0 and saves / max(likes, 1) > 0.08:
+        notes.append("High saves ratio -- people are bookmarking this. Educational/reference value is strong.")
+    if shares > 0 and likes > 0 and shares / max(likes, 1) > 0.05:
+        notes.append("High share rate -- this content triggers people to tag others. Relatable or hype factor.")
+    if likes > 0 and plays > 0 and likes / max(plays, 1) > 0.07:
+        notes.append("Strong like rate -- high resonance with the audience watching.")
+
+    ratio = plays / max(likes + shares + saves + 1, 1)
+    if ratio > 20 and not notes:
+        notes.append("Wide reach relative to engagement -- algorithm is pushing this beyond existing followers.")
+
+    hook_analysis = f"Format: {fmt}. " + (" ".join(notes) if notes else "Solid niche engagement pattern.")
+
+    # Copy this suggestion
+    copy_map = {
+        "Tutorial / Technique Breakdown": "Film one specific technique. Name it in the caption. Show 3 clean reps. No talking intro -- start on the movement.",
+        "Raw Authentic Story": "Lead with a real moment -- a doubt, a setback, a chip. Raw footage. Let the caption carry the emotion.",
+        "Slideshow Highlight Reel": "Pick 5-8 best clips. Slideshow format, minimal editing. Hard-hitting sound. Caption = your record or a bold statement.",
+        "1v1 / Challenge": "Set up a clean 1v1 rep. Film the win. Caption challenges someone specific or a position group.",
+        "Day in the Life / Vlog": "Film your actual day from first workout to last. No script. Authentic pace.",
+        "Motivational / Chip on Shoulder": "Start with what someone said about you. Let the training footage be your answer.",
+        "Workout / Training Footage": "Film a full session or one standout exercise. Show intensity. Caption = what you're training for.",
+        "Raw Training Footage": "Keep it raw and real. The less polished, the more authentic it feels. Caption adds the story.",
+    }
+    copy_this = copy_map.get(fmt, "Keep it simple and specific to one idea per video.")
+
+    return fmt, hook_analysis, copy_this
+
+
 # -- APIFY HELPERS ----------------------------------------------------
 def run_actor(actor_id, input_data, timeout=240):
-    """Run an Apify actor and return its dataset items. Verbose logging for debugging."""
+    """Run an Apify actor and return its dataset items."""
     try:
         if not APIFY_TOKEN:
             print("  [ERROR] APIFY_TOKEN is not set!")
@@ -227,16 +292,27 @@ def run_actor(actor_id, input_data, timeout=240):
 
 # -- SINGLE FETCH (reuse one actor call for all three parsers) --------
 def fetch_all_raw():
-    """One actor call, 5 hashtags x 10 results = ~50 items. Stays in free tier."""
-    print("  Fetching TikTok data (single actor call)...")
+    """
+    One actor call, 8 hashtags x 15 results = ~120 items.
+    sortType:latest ensures we get recent posts, not all-time viral.
+    7-day filter is applied again in each parser as a safety net.
+    """
+    print("  Fetching TikTok data (single actor call, latest sort)...")
     results = run_actor("clockworks/tiktok-hashtag-scraper", {
-        "hashtags": ["footballtraining", "dbtraining", "cornerback", "1v1football", "footballdrills"],
-        "resultsPerPage": 10,
+        "hashtags": [
+            "footballtraining", "dbtraining", "cornerback",
+            "1v1football", "footballdrills", "defensiveback",
+            "footballworkout", "7on7"
+        ],
+        "resultsPerPage": 15,
+        "sortType": "latest",
         "shouldDownloadCovers": False,
         "shouldDownloadVideos": False,
-    }, timeout=240)
+    }, timeout=300)
     if not results:
         print("  [WARN] Actor returned 0 items -- will use curated fallback data")
+    else:
+        print(f"  [OK] Got {len(results)} raw items (latest sort)")
     return results
 
 
@@ -286,13 +362,11 @@ def get_pillar(text):
 # -- DATA FETCHERS ----------------------------------------------------
 def fetch_trending_sounds(raw):
     """Extract trending sounds from pre-fetched hashtag video results.
-    Only includes sounds used in videos from the last 7 days.
-    Filters to 30k+ plays, sorted by virality."""
+    Only includes sounds used in videos from the last 7 days."""
     print("  Parsing trending sounds...")
     cutoff = time.time() - SEVEN_DAYS
     sound_counts = {}
     for item in raw:
-        # 7-day freshness filter
         create_time = item.get("createTime", 0) or 0
         if create_time > 0 and create_time < cutoff:
             continue
@@ -305,8 +379,6 @@ def fetch_trending_sounds(raw):
             continue
         key = music_id or (title + "|" + author)
         if key not in sound_counts:
-            # Build a link that actually works:
-            # If we have a music_id, use the direct music page; otherwise fallback to TikTok search
             if music_id:
                 safe_title = title.replace(' ', '-').replace("'", "").replace('"', '')
                 link = f"https://www.tiktok.com/music/{safe_title}-{music_id}"
@@ -326,7 +398,7 @@ def fetch_trending_sounds(raw):
     sounds = []
     for s in sound_counts.values():
         if s["maxPlays"] < 30000:
-            continue  # virality threshold
+            continue
         sc, cat = score_sound({"title": s["title"], "author": s["author"]})
         sounds.append({
             "title":     s["title"],
@@ -342,29 +414,35 @@ def fetch_trending_sounds(raw):
             "maxPlays":  s["maxPlays"],
         })
 
-    # Sort by maxPlays descending
     sounds.sort(key=lambda x: -x["maxPlays"])
     return sounds[:15]
 
 
 def fetch_creator_spy(raw):
-    """Find emerging creators from pre-fetched hashtag video results.
-    Only videos from the last 7 days."""
-    print("  Parsing creator data...")
+    """
+    Find emerging creators from pre-fetched hashtag video results.
+    KEY UPGRADE v5:
+    - Hard 7-day cutoff -- no old videos ever
+    - Per creator: collect up to 5 videos, sorted by recency (newest first) then plays
+    - Run hook analysis on each viral video
+    - Micro/small sorted by follower ratio
+    """
+    print("  Parsing creator data (v5 -- recency first)...")
     cutoff = time.time() - SEVEN_DAYS
-    seen_handles = set()
-    creator_map  = {}
+    now    = time.time()
+    creator_map = {}
 
     for v in raw:
-        # 7-day freshness filter
+        # Hard 7-day recency gate -- if no createTime, skip
         create_time = v.get("createTime", 0) or 0
-        if create_time > 0 and create_time < cutoff:
+        if create_time == 0 or create_time < cutoff:
             continue
 
         author = v.get("authorMeta") or {}
         handle = author.get("name", "") or ""
-        if not handle or handle in seen_handles:
+        if not handle:
             continue
+
         fans   = author.get("fans", 0) or 0
         plays  = v.get("playCount", 0) or 0
         likes  = v.get("diggCount", 0) or 0
@@ -380,8 +458,13 @@ def fetch_creator_spy(raw):
         if fans > 500_000:
             continue
 
-        # Compute viral reason + follower ratio signal
+        # Days ago label
+        days_ago = max(0, int((now - create_time) / 86400))
+
+        # Follower ratio
         ratio = plays / max(fans, 1)
+
+        # Viral reason
         viral_reason = ""
         if plays > 500_000:
             viral_reason = f"MEGA VIRAL -- {ratio:.0f}x follower ratio. Study this format immediately."
@@ -397,8 +480,10 @@ def fetch_creator_spy(raw):
         elif ratio > 10 and plays > 5_000:
             viral_reason = f"WATCH -- {ratio:.0f}x follower ratio on micro account. Early signal."
 
+        # Hook analysis
+        fmt_type, hook_analysis, copy_this = analyze_hook(desc, plays, likes, shares, saves)
+
         if handle not in creator_map:
-            # Tier: micro <5K, small <50K, mid <500K
             if fans < 5_000:
                 size = "micro"
             elif fans < 50_000:
@@ -412,31 +497,40 @@ def fetch_creator_spy(raw):
                 "videos": []
             }
 
-        if len(creator_map[handle]["videos"]) < 3:
+        # Store up to 5 videos per creator
+        if len(creator_map[handle]["videos"]) < 5:
             creator_map[handle]["videos"].append({
-                "desc":         desc[:100],
-                "plays":        plays,
-                "likes":        likes,
-                "shares":       shares,
-                "saves":        saves,
-                "sound":        sound,
-                "sound_author": sound_author,
-                "thumb":        thumb,
-                "url":          url,
-                "fans":         fans,
-                "viral":        plays > 30_000,
-                "pillar":       get_pillar(desc),
-                "viral_reason": viral_reason,
+                "desc":          desc[:120],
+                "plays":         plays,
+                "likes":         likes,
+                "shares":        shares,
+                "saves":         saves,
+                "sound":         sound,
+                "sound_author":  sound_author,
+                "thumb":         thumb,
+                "url":           url,
+                "fans":          fans,
+                "viral":         plays > 30_000,
+                "pillar":        get_pillar(desc),
+                "days_ago":      days_ago,
+                "create_time":   create_time,
+                "viral_reason":  viral_reason,
+                "format_type":   fmt_type,
+                "hook_analysis": hook_analysis,
+                "copy_this":     copy_this,
             })
-        seen_handles.add(handle)
 
-    # Sort: micros and smalls first (by outsized ratio), then by raw plays
+    # For each creator: sort their videos by recency first (newest to oldest),
+    # then within same day by plays descending
+    for c in creator_map.values():
+        c["videos"].sort(key=lambda v: (-v["create_time"], -v["plays"]))
+
+    # Sort creators: micros/smalls first by ratio, then mid by plays
     def creator_sort_key(c):
         max_plays = max((v["plays"] for v in c["videos"]), default=0)
         fans_ct   = c.get("fans", 1) or 1
         ratio     = max_plays / fans_ct
         size_rank = {"micro": 0, "small": 1, "mid": 2, "large": 3}.get(c["size"], 2)
-        # Primary: size tier; secondary: ratio (micro/small ranked by ratio, others by raw plays)
         if c["size"] in ("micro", "small"):
             return (size_rank, -ratio)
         return (size_rank, -max_plays)
@@ -546,49 +640,33 @@ def generate_video_ideas(sounds, creators, top_videos):
 
 # -- BEST POST TIME ---------------------------------------------------
 def best_post_time():
-    """Returns today's recommended posting window based on day of week."""
-    weekday = datetime.now().weekday()  # 0=Mon, 6=Sun
-    if weekday in (4, 5):  # Fri/Sat
+    weekday = datetime.now().weekday()
+    if weekday in (4, 5):
         return "7-9 PM ET (peak weekend engagement)"
-    elif weekday == 6:  # Sun
+    elif weekday == 6:
         return "6-8 PM ET (pre-week hype)"
-    elif weekday in (0, 1):  # Mon/Tue
+    elif weekday in (0, 1):
         return "6-8 PM ET (after school/work)"
-    else:  # Wed/Thu
+    else:
         return "7-9 PM ET (mid-week sweet spot)"
 
 
-# -- PLAYS LABEL (virality tier) -------------------------------------
+# -- PLAYS LABEL / COLOR / FORMAT ------------------------------------
 def plays_label(plays):
-    """Returns a plain-text virality tier label."""
-    if plays >= 500_000:
-        return "MEGA"
-    elif plays >= 100_000:
-        return "VIRAL"
-    elif plays >= 30_000:
-        return "HOT"
-    else:
-        return ""
-
+    if plays >= 500_000:  return "MEGA"
+    elif plays >= 100_000: return "VIRAL"
+    elif plays >= 30_000:  return "HOT"
+    else:                  return ""
 
 def plays_color(plays):
-    """Returns CSS color for a plays count based on virality tier."""
-    if plays >= 500_000:
-        return "#f87171"   # red -- mega
-    elif plays >= 100_000:
-        return "#fbbf24"   # amber -- viral
-    elif plays >= 30_000:
-        return "#4a9eff"   # blue -- hot
-    else:
-        return "#888888"   # gray
-
+    if plays >= 500_000:  return "#f87171"
+    elif plays >= 100_000: return "#fbbf24"
+    elif plays >= 30_000:  return "#4a9eff"
+    else:                  return "#888888"
 
 def fmt_plays(plays):
-    """Format plays number compactly."""
-    if plays >= 1_000_000:
-        return f"{plays/1_000_000:.1f}M"
-    elif plays >= 1_000:
-        return f"{plays/1_000:.0f}K"
+    if plays >= 1_000_000: return f"{plays/1_000_000:.1f}M"
+    elif plays >= 1_000:   return f"{plays/1_000:.0f}K"
     return str(plays)
 
 
@@ -609,10 +687,12 @@ def email_style():
     .tag-blue{background:#0a1a2e;color:#4a9eff;border:1px solid #1e3a5f;}
     .tag-green{background:#0a2414;color:#4ade80;border:1px solid #166534;}
     .tag-gray{background:#1a1d25;color:#666;border:1px solid #2a2d38;}
+    .tag-orange{background:#2a1500;color:#fb923c;border:1px solid #7c2d12;}
     .stat{font-size:11px;color:#556;}
     .stat strong{color:#8a9ab0;}
     .divider{border:none;border-top:1px solid #1c2235;margin:12px 0;}
     .watch-btn{display:inline-block;padding:4px 12px;background:#151c2e;border:1px solid #1e3a5f;border-radius:6px;font-size:10px;color:#4a9eff;font-weight:600;margin-top:6px;}
+    .intel-box{background:#0a1020;border:1px solid #1a2540;border-radius:8px;padding:10px;margin-top:8px;}
     """
 
 
@@ -621,7 +701,7 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
     post_time = best_post_time()
     top = sounds[0] if sounds else {"title": "â", "link": ""}
 
-    # -- NICHE SOUNDS SECTION (sorted by virality, 30k+ threshold) --
+    # -- SOUNDS --
     sound_rows = ""
     for i, s in enumerate(sounds[:12], 1):
         mp      = s.get("maxPlays", 0)
@@ -638,13 +718,13 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #151820;">
           <div style="width:32px;text-align:center;font-size:11px;color:#4a5570;font-weight:700;">#{i}</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{link_o}{s["title"]}{link_c} {tier_badge}{rising_badge}</div>
+            <div style="font-size:13px;white-space:nowraw;overflow:hidden;text-overflow:ellipsis;">{link_o}{s["title"]}{link_c} {tier_badge}{rising_badge}</div>
             <div style="font-size:11px;color:#4a5570;margin-top:2px;">{s["author"]} &nbsp;&bull;&nbsp; Used in {used} niche videos{tiktok_link}</div>
           </div>
           <div style="flex-shrink:0;font-size:13px;font-weight:700;color:{color};">{fmt_plays(mp)}</div>
         </div>"""
 
-    # -- CREATOR SPOTLIGHT (small creators first, emphasis on viral) --
+    # -- CREATOR SPOTLIGHT with deep intel --
     spotlight_html = ""
     def email_creator_sort(c):
         max_plays = max((v["plays"] for v in c["videos"]), default=0)
@@ -661,11 +741,10 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
         size_color = {"micro": "#f87171", "small": "#4ade80", "mid": "#4a9eff", "large": "#888"}.get(c["size"], "#888")
         handle_url = f"https://www.tiktok.com/@{c['handle']}"
         max_plays  = max((v["plays"] for v in c["videos"]), default=0)
-        viral_vids = [v for v in c["videos"] if v.get("viral")]
 
         spotlight_html += f"""
-        <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #1c2235;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #1c2235;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div>
               <a href="{handle_url}" style="font-weight:700;font-size:14px;color:#d4d8e0;">@{c["handle"]}</a>
               <span style="font-size:10px;color:{size_color};margin-left:8px;font-weight:700;background:#0a0c10;padding:2px 7px;border-radius:10px;border:1px solid {size_color}30;">{size_label}</span>
@@ -674,25 +753,42 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
           </div>"""
 
         if not c["videos"]:
-            spotlight_html += '<div style="font-size:12px;color:#333;">No recent videos</div>'
+            spotlight_html += '<div style="font-size:12px;color:#333;">No recent videos in last 7 days</div>'
         else:
+            # Show top 2 videos (already sorted by recency then plays)
             for v in c["videos"][:2]:
-                vp      = v.get("plays", 0)
-                vcolor  = plays_color(vp)
-                vtier   = plays_label(vp)
-                vtag    = f'<span class="tag tag-{"mega" if vtier=="MEGA" else "viral" if vtier=="VIRAL" else "hot"}" style="font-size:9px;">{vtier}</span> ' if vtier else ""
-                watch   = f'<a href="{v["url"]}" class="watch-btn">Watch on TikTok</a>' if v.get("url") else ""
-                reason  = f'<div style="font-size:10px;color:#4a9eff;margin-top:3px;">{v["viral_reason"]}</div>' if v.get("viral_reason") else ""
-                sound_l = f'<div style="font-size:10px;color:#4a5570;margin-top:2px;">Sound: {v["sound"]}</div>' if v.get("sound") else ""
+                vp       = v.get("plays", 0)
+                vcolor   = plays_color(vp)
+                vtier    = plays_label(vp)
+                vtag     = f'<span class="tag tag-{"mega" if vtier=="MEGA" else "viral" if vtier=="VIRAL" else "hot"}" style="font-size:9px;">{vtier}</span> ' if vtier else ""
+                watch    = f'<a href="{v["url"]}" class="watch-btn">Watch on TikTok â</a>' if v.get("url") else ""
+                reason   = f'<div style="font-size:10px;color:#4a9eff;margin-top:3px;font-weight:600;">{v["viral_reason"]}</div>' if v.get("viral_reason") else ""
+                sound_l  = f'<div style="font-size:10px;color:#4a5570;margin-top:2px;">Sound: <strong style="color:#8a9ab0;">{v["sound"]}</strong></div>' if v.get("sound") else ""
                 pillar_b = f'<span class="tag tag-gray" style="font-size:9px;">{v["pillar"].upper()}</span> ' if v.get("pillar") else ""
+                days_lbl = f'<span class="tag tag-orange" style="font-size:9px;">{v.get("days_ago",0)}d ago</span> ' if v.get("days_ago") is not None else ""
+
+                # Deep intel box
+                fmt_type     = v.get("format_type", "")
+                hook_analysis = v.get("hook_analysis", "")
+                copy_this    = v.get("copy_this", "")
+                intel_html   = ""
+                if fmt_type or hook_analysis or copy_this:
+                    intel_html = f"""
+                    <div class="intel-box">
+                      <div style="font-size:9px;font-weight:700;color:#4a5570;letter-spacing:.5px;margin-bottom:6px;">CREATOR INTEL</div>
+                      {f'<div style="font-size:10px;color:#fb923c;font-weight:700;margin-bottom:4px;">Format: {fmt_type}</div>' if fmt_type else ""}
+                      {f'<div style="font-size:10px;color:#8a9ab0;margin-bottom:4px;line-height:1.5;">{hook_analysis}</div>' if hook_analysis else ""}
+                      {f'<div style="font-size:10px;color:#4ade80;font-weight:600;line-height:1.5;">Copy this: {copy_this}</div>' if copy_this else ""}
+                    </div>"""
 
                 spotlight_html += f"""
                 <div style="background:#0d1018;border-radius:8px;padding:10px;margin-bottom:8px;">
-                  <div style="font-size:11px;color:#8a9ab0;margin-bottom:6px;line-height:1.4;">{pillar_b}{vtag}{v["desc"] or "(no caption)"}</div>
-                  <div style="font-size:12px;font-weight:700;color:{vcolor};">{fmt_plays(vp)} views</div>
-                  <div style="font-size:11px;color:#4a5570;">{v.get("likes",0):,} likes &nbsp;&bull;&nbsp; {v.get("saves",0):,} saves</div>
+                  <div style="font-size:11px;color:#8a9ab0;margin-bottom:6px;line-height:1.4;">{days_lbl}{pillar_b}{vtag}{v["desc"] or "(no caption)"}</div>
+                  <div style="font-size:13px;font-weight:700;color:{vcolor};">{fmt_plays(vp)} views</div>
+                  <div style="font-size:11px;color:#4a5570;">{v.get("likes",0):,} likes &nbsp;&bull;&nbsp; {v.get("saves",0):,} saves &nbsp;&bull;&nbsp; {v.get("shares",0):,} shares</div>
                   {sound_l}
                   {reason}
+                  {intel_html}
                   {watch}
                 </div>"""
         spotlight_html += "</div>"
@@ -707,7 +803,7 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
     # -- TOP HASHTAG VIDEOS --
     ht_videos_html = ""
     for v in top_videos[:4]:
-        watch = f'<a href="{v["url"]}" class="watch-btn">Watch</a>' if v.get("url") else ""
+        watch = f'<a href="{v["url"]}" class="watch-btn">Watch â</a>' if v.get("url") else ""
         fans_fmt = f"{v['fans']/1000:.0f}K" if v.get("fans", 0) >= 1000 else str(v.get("fans", 0))
         sound_l = f'<div style="font-size:10px;color:#4a5570;">Sound: {v["sound"]}</div>' if v.get("sound") else ""
         vp = v.get("plays", 0)
@@ -724,11 +820,10 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
     ideas_html = ""
     for idea in ideas:
         p_color = "#f87171" if idea["priority"] == "URGENT" else "#fbbf24" if idea["priority"] == "HOT" else "#4a9eff"
-        p_label = idea["priority"]
-        inspo_link = f' <a href="{idea["inspo_url"]}" class="watch-btn">Watch inspo</a>' if idea.get("inspo_url") else ""
+        inspo_link = f' <a href="{idea["inspo_url"]}" class="watch-btn">Watch inspo â</a>' if idea.get("inspo_url") else ""
         ideas_html += f"""
         <div style="border-left:3px solid {p_color};padding:10px 14px;margin-bottom:10px;background:#0d1018;border-radius:0 8px 8px 0;">
-          <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;letter-spacing:.5px;">{p_label} &bull; {idea["pillar"]}{idea.get("inspo","")}{inspo_link}</div>
+          <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;letter-spacing:.5px;">{idea["priority"]} &bull; {idea["pillar"]}{idea.get("inspo","")}{inspo_link}</div>
           <div style="font-size:13px;color:#d4d8e0;margin-bottom:6px;line-height:1.5;">{idea["idea"]}</div>
           <div style="font-size:10px;color:#4a5570;">Sound: <strong style="color:#8a9ab0;">{idea["sound"]}</strong> &nbsp;&bull;&nbsp; {idea["hashtags"]}</div>
         </div>"""
@@ -742,7 +837,7 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
 <div style="background:linear-gradient(135deg,#0d1117,#111a2e);border-radius:16px;padding:24px;margin-bottom:14px;text-align:center;border:1px solid #1c2a45;">
   <div style="font-size:36px;margin-bottom:8px;">Football</div>
   <h1 style="font-size:22px;font-weight:900;color:#e8ecf4;margin-bottom:4px;">Good Morning, Joshua</h1>
-  <p style="color:#4a5570;font-size:13px;">6AM Football Trend Brief &nbsp;&bull;&nbsp; {date_str}</p>
+  <p style="color:#4a5570;font-size:13px;">Football Trend Brief &nbsp;&bull;&nbsp; {date_str}</p>
   <div style="margin-top:12px;background:#0d1018;border-radius:8px;padding:10px;font-size:13px;color:#4a9eff;font-weight:600;">
     Best time to post today: {post_time}
   </div>
@@ -770,8 +865,8 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
 </div>
 
 <div class="card">
-  <h2>Creator Spotlight (Emerging First)</h2>
-  <div style="font-size:11px;color:#4a5570;margin-bottom:12px;">Tracking small creators posting football content -- same niche as you</div>
+  <h2>Creator Spotlight â Last 7 Days Only</h2>
+  <div style="font-size:11px;color:#4a5570;margin-bottom:12px;">Micro &amp; emerging creators posting football content right now. Orange badge = days since posted.</div>
   {spotlight_html}
 </div>
 
@@ -781,7 +876,7 @@ def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
   {('<hr class="divider"><div style="font-size:12px;font-weight:700;color:#d4d8e0;margin:12px 0 10px;">Top Videos Under These Hashtags</div>' + ht_videos_html) if ht_videos_html else ""}
 </div>
 
-<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent &nbsp;&bull;&nbsp; 6AM Brief &nbsp;&bull;&nbsp; therealjoshjames22@gmail.com</p>
+<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent v5 &nbsp;&bull;&nbsp; therealjoshjames22@gmail.com</p>
 </body></html>"""
     return html
 
@@ -794,13 +889,15 @@ def build_afternoon_email(sounds, creators, top_videos, ideas, date_str):
     viral_html = ""
     for v in new_viral[:5]:
         vp     = v.get("plays", 0)
-        watch  = f'<a href="{v["url"]}" class="watch-btn">Watch on TikTok</a>' if v.get("url") else ""
+        watch  = f'<a href="{v["url"]}" class="watch-btn">Watch on TikTok â</a>' if v.get("url") else ""
         reason = f'<div style="font-size:10px;color:#4a9eff;margin-top:3px;">{v["viral_reason"]}</div>' if v.get("viral_reason") else ""
+        copy_t = f'<div style="font-size:10px;color:#4ade80;margin-top:3px;">Copy this: {v["copy_this"]}</div>' if v.get("copy_this") else ""
         viral_html += f"""
         <div style="padding:10px 0;border-bottom:1px solid #1c2235;">
           <div style="font-size:13px;font-weight:600;color:{plays_color(vp)};">{fmt_plays(vp)} views</div>
           <div style="font-size:12px;color:#8a9ab0;margin-top:2px;">{v["desc"][:70]}</div>
           {reason}
+          {copy_t}
           {watch}
         </div>"""
     if not viral_html:
@@ -809,7 +906,7 @@ def build_afternoon_email(sounds, creators, top_videos, ideas, date_str):
     ideas_html = ""
     for idea in (urgent or ideas[:3]):
         p_color = "#f87171" if idea["priority"] == "URGENT" else "#fbbf24"
-        inspo_link = f' <a href="{idea["inspo_url"]}" class="watch-btn">Watch inspo</a>' if idea.get("inspo_url") else ""
+        inspo_link = f' <a href="{idea["inspo_url"]}" class="watch-btn">Watch inspo â</a>' if idea.get("inspo_url") else ""
         ideas_html += f"""
         <div style="border-left:3px solid {p_color};padding:10px 14px;margin-bottom:10px;background:#0d1018;border-radius:0 8px 8px 0;">
           <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;">{idea["priority"]} &bull; {idea["pillar"]}{inspo_link}</div>
@@ -833,7 +930,7 @@ def build_afternoon_email(sounds, creators, top_videos, ideas, date_str):
   <h2>Top Ideas This Afternoon</h2>
   {ideas_html}
 </div>
-<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent &nbsp;&bull;&nbsp; 2PM Brief &nbsp;&bull;&nbsp; therealjoshjames22@gmail.com</p>
+<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent v5 &nbsp;&bull;&nbsp; 2PM Brief &nbsp;&bull;&nbsp; therealjoshjames22@gmail.com</p>
 </body></html>"""
     return html
 
@@ -845,11 +942,13 @@ def build_night_email(sounds, creators, ideas, date_str):
     recap_html = ""
     for v in viral_today[:5]:
         vp    = v.get("plays", 0)
-        watch = f'<a href="{v["url"]}" class="watch-btn">Watch</a>' if v.get("url") else ""
+        watch = f'<a href="{v["url"]}" class="watch-btn">Watch â</a>' if v.get("url") else ""
+        copy_t = f'<div style="font-size:10px;color:#4ade80;margin-top:3px;">Copy this: {v["copy_this"]}</div>' if v.get("copy_this") else ""
         recap_html += f"""
         <div style="padding:10px 0;border-bottom:1px solid #1c2235;">
           <div style="font-size:13px;font-weight:600;color:{plays_color(vp)};">{fmt_plays(vp)} views</div>
           <div style="font-size:12px;color:#8a9ab0;margin-top:2px;">{v["desc"][:70]}</div>
+          {copy_t}
           {watch}
         </div>"""
     if not recap_html:
@@ -886,7 +985,7 @@ def build_night_email(sounds, creators, ideas, date_str):
   <h2 style="color:#4a9eff;">Use This Sound Tomorrow</h2>
   <p style="font-size:14px;line-height:1.6;">{top_sound_link} -- post first thing in the morning for max reach</p>
 </div>
-<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent &nbsp;&bull;&nbsp; 9PM Brief &nbsp;&bull;&nbsp; therealjoshjames22@gmail.com</p>
+<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent v5 &nbsp;&bull;&nbsp; 9PM Brief &nbsp;&bull;&nbsp; therealjoshjames22@gmail.com</p>
 </body></html>"""
     return html
 
@@ -939,9 +1038,11 @@ def write_data_json(sounds, creators, tags, top_videos, ideas):
         ],
         "creators": [
             {"handle": c.get("handle",""), "size": c.get("size",""),
-             "fans": c.get("fans",0), "maxPlays": c.get("maxPlays",0),
-             "topVideo": c.get("topVideo",""), "topSound": c.get("topSound",""),
-             "topDesc": c.get("topDesc","")}
+             "fans": c.get("fans",0),
+             "topVideo": c["videos"][0]["url"] if c.get("videos") else "",
+             "topDesc":  c["videos"][0]["desc"] if c.get("videos") else "",
+             "topPlays": c["videos"][0]["plays"] if c.get("videos") else 0,
+             "formatType": c["videos"][0].get("format_type","") if c.get("videos") else ""}
             for c in creators[:15]
         ],
         "hashtags":  tags[:15],
@@ -970,7 +1071,7 @@ def main():
     brief    = BRIEF_TYPE.lower()
 
     print(f"\n{'='*52}")
-    print(f"Football Trend Agent v4 -- {brief.upper()} RUN")
+    print(f"Football Trend Agent v5 -- {brief.upper()} RUN")
     print(f"{date_str}")
     print(f"{'='*52}\n")
 
@@ -990,10 +1091,10 @@ def main():
         creators         = fetch_creator_spy(raw)
         tags, top_videos = fetch_hashtags(raw)
         if not sounds:
-            print("  [FALLBACK] Using curated sounds (Apify returned 0)")
+            print("  [FALLBACK] Using curated sounds")
             sounds = FALLBACK_SOUNDS
         if not creators:
-            print("  [FALLBACK] Using curated creators (Apify returned 0)")
+            print("  [FALLBACK] Using curated creators")
             creators = FALLBACK_CREATORS
         if not tags:
             print("  [FALLBACK] Using curated hashtag data")
@@ -1017,7 +1118,6 @@ def main():
         send_email(subject, html)
         print("[OK] Email sent.\n")
     else:
-        # Hourly scan -- only alert on breakouts
         data_read = json.load(open("data.json"))
         if data_read.get("breakouts"):
             b = data_read["breakouts"][0]
@@ -1026,11 +1126,11 @@ def main():
             <p><strong style="color:#e8ecf4;">@{b["handle"]}</strong> just hit <strong style="color:#f87171;">{b["plays"]:,} views</strong> in the last 6 hours.</p>
             <p style="color:#4a5570;">Sound: {b["sound"]}</p>
             <p style="color:#8a9ab0;">{b["desc"]}</p>
-            <p><a href="{b["url"]}" style="color:#4a9eff;">Watch Video</a></p>
+            <p><a href="{b["url"]}" style="color:#4a9eff;">Watch Video â</a></p>
             </body></html>"""
             send_email(f"BREAKOUT: @{b['handle']} -- {b['plays']:,} views right now", html)
         else:
-            print("[OK] Hourly scan complete. No breakouts. data.json updated.\n")
+            print("[OK] Scan complete. No breakouts. data.json updated.\n")
 
     print("[OK] Done.\n")
 
