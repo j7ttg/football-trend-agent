@@ -1,163 +1,70 @@
-name: Football Trend Agent
+name: Football Trend Agent v5
 
-"on":
+on:
   schedule:
-    - cron: '0 * * * *'
-    - cron: '0 10 * * *'
-    - cron: '0 18 * * *'
-    - cron: '0 1 * * *'
+    # Runs every 3 hours (8x per day) -- all times UTC
+    # 6AM ET  = 10:00 UTC  --> morning brief
+    # 9AM ET  = 13:00 UTC  --> scan
+    # 12PM ET = 16:00 UTC  --> scan
+    # 2PM ET  = 18:00 UTC  --> afternoon brief
+    # 5PM ET  = 21:00 UTC  --> scan
+    # 7PM ET  = 23:00 UTC  --> scan
+    # 9PM ET  = 01:00 UTC  --> night brief
+    # 12AM ET = 04:00 UTC  --> scan
+    - cron: "0 10 * * *"   # 6AM ET  -- morning
+    - cron: "0 13 * * *"   # 9AM ET  -- scan
+    - cron: "0 16 * * *"   # 12PM ET -- scan
+    - cron: "0 18 * * *"   # 2PM ET  -- afternoon
+    - cron: "0 21 * * *"   # 5PM ET  -- scan
+    - cron: "0 23 * * *"   # 7PM ET  -- scan
+    - cron: "0 1 * * *"    # 9PM ET  -- night
+    - cron: "0 4 * * *"    # 12AM ET -- scan
   workflow_dispatch:
     inputs:
       brief_type:
-        description: 'Which brief to run'
-        required: true
-        default: 'scan'
-        type: choice
-        options:
-          - morning
-          - afternoon
-          - night
-          - scan
+        description: "Brief type (morning / afternoon / night / scan)"
+        required: false
+        default: "morning"
 
 jobs:
-
-  hourly-scan:
-    permissions:
-      contents: write
-    if: |
-      (github.event_name == 'schedule' &&
-      github.event.schedule == '0 * * * *') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.brief_type == 'scan')
+  run-agent:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install requests
-      - name: Hourly Scan
-        env:
-          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
-          BRIEF_TYPE: scan
-        run: python agent.py
-      - name: Commit updated data.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "=== DEBUG ==="
-          pwd
-          ls -la data.json 2>/dev/null || echo "NO data.json found!"
-          git config user.name "Football Trend Bot"
-          git config user.email "bot@football-trend-agent"
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/j7ttg/football-trend-agent.git
-          git add data.json || true
-          git status
-          git diff --staged --quiet || git commit -m "Hourly scan $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push || echo "Push failed (may be nothing to push)"
+    timeout-minutes: 15
 
-  morning-brief:
-    permissions:
-      contents: write
-    if: |
-      (github.event_name == 'schedule' && github.event.schedule == '0 10 * * *') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.brief_type == 'morning')
-    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install requests
-      - name: Run Morning Brief
-        env:
-          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
-          BRIEF_TYPE: morning
-        run: python agent.py
-      - name: Commit updated data.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "Football Trend Bot"
-          git config user.email "bot@football-trend-agent"
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/j7ttg/football-trend-agent.git
-          git add data.json || true
-          git diff --staged --quiet || git commit -m "Morning brief $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push || true
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-  afternoon-brief:
-    permissions:
-      contents: write
-    if: |
-      (github.event_name == 'schedule' && github.event.schedule == '0 18 * * *') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.brief_type == 'afternoon')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install requests
-      - name: Run Afternoon Brief
-        env:
-          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
-          BRIEF_TYPE: afternoon
-        run: python agent.py
-      - name: Commit updated data.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "Football Trend Bot"
-          git config user.email "bot@football-trend-agent"
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/j7ttg/football-trend-agent.git
-          git add data.json || true
-          git diff --staged --quiet || git commit -m "Afternoon brief $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push || true
+          python-version: "3.11"
 
-  night-brief:
-    permissions:
-      contents: write
-    if: |
-      (github.event_name == 'schedule' && github.event.schedule == '0 1 * * *') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.brief_type == 'night')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install requests
-      - name: Run Night Brief
-        env:
-          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
-          BRIEF_TYPE: night
-        run: python agent.py
-      - name: Commit updated data.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Determine brief type
+        id: brief
         run: |
-          git config user.name "Football Trend Bot"
-          git config user.email "bot@football-trend-agent"
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/j7ttg/football-trend-agent.git
-          git add data.json || true
-          git diff --staged --quiet || git commit -m "Night brief $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push || true
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            BRIEF="${{ github.event.inputs.brief_type }}"
+          else
+            HOUR=$(date -u +%H)
+            case $HOUR in
+              10) BRIEF="morning" ;;
+              18) BRIEF="afternoon" ;;
+              01) BRIEF="night" ;;
+              *)  BRIEF="scan" ;;
+            esac
+          fi
+          echo "brief_type=$BRIEF" >> $GITHUB_OUTPUT
+          echo "Running brief type: $BRIEF"
+
+      - name: Run Football Trend Agent
+        env:
+          APIFY_TOKEN:    ${{ secrets.APIFY_TOKEN }}
+          EMAIL_FROM:     ${{ secrets.EMAIL_FROM }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_TO:       ${{ secrets.EMAIL_TO }}
+          BRIEF_TYPE:     ${{ steps.brief.outputs.brief_type }}
+        run: python agent.py
