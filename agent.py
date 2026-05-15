@@ -1,5 +1,5 @@
 """
-Football Trend Agent v5 -- Upgraded single agent
+Football Trend Agent v6 -- AI Content Intelligence System
 - Runs every 3 hours via GitHub Actions
 - 6AM: Morning Brief (deep creator intel + sounds + hashtags + video ideas)
 - 2PM: Afternoon Idea Refresh
@@ -7,8 +7,14 @@ Football Trend Agent v5 -- Upgraded single agent
 - Every other run: quick scan, breakout alerts only
 - Creator deep dive: recent posts only (7-day), sorted by recency then plays
 - sortType:latest on Apify so old viral videos never surface
-- Hook/format analysis on every viral creator video
-Content pillars: 1v1 competition, DB drills, workout/training, motivation
+- Hook/format analysis on every viral video
+- Confidence scoring 1-100 on all signals
+- Audio lifecycle: EARLY / HEATING UP / PEAKING / SATURATED / DECLINING
+- American football filter: rejects soccer/non-football content
+- Micro creator priority: ceiling 50K, prioritizes under 5K
+- Sound cards with actual clickable football videos
+- Long-term memory via data.json trend history
+Content pillars: 1v1 competition, DB drills, workout/training, motivation, Christian athlete
 """
 
 import os
@@ -19,1154 +25,995 @@ import requests
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# -- CONFIG -----------------------------------------------------------
+# -- CONFIG ----------------------------------------------------------
 APIFY_TOKEN    = os.environ.get("APIFY_TOKEN", "")
 EMAIL_FROM     = os.environ.get("EMAIL_FROM", "therealjoshjames22@gmail.com")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "")
 EMAIL_TO       = os.environ.get("EMAIL_TO", "therealjoshjames22@gmail.com")
-BRIEF_TYPE     = os.environ.get("BRIEF_TYPE", "morning")  # morning | afternoon | night | scan
-
-APIFY_BASE = "https://api.apify.com/v2"
-SEVEN_DAYS = 7 * 86400  # seconds
-
-# -- CONTENT PILLARS --------------------------------------------------
-PILLARS = {
-    "1v1":        ["1v1","one on one","lockdown","shutdown","press coverage","man coverage","jam","bump","guard","lock"],
-    "drills":     ["drill","technique","route","break","backpedal","hip","turn","db drill","cornerback","footwork","press","off coverage","ladder","cone"],
-    "workout":    ["workout","training","speed","agility","strength","lift","gym","combine","40 yard","vertical","explosive","faster"],
-    "motivation": ["grind","mindset","motivation","nobody believed","outwork","hunger","dog","dawg","elite","mentality","sacrifice","offseason"]
-}
-
-FOOTBALL_KW = [
-    "football","training","drill","qb","quarterback","receiver","wr","db",
-    "cornerback","linebacker","defense","offense","route","7on7","combine",
-    "camp","athlete","speed","agility","grind","workout","lockdown","1v1",
-    "defensiveback","dbdrills","footballtraining"
-]
-
-CREATORS = [
-    {"handle": "pick6athletics",   "size": "small"},
-    {"handle": "firstdowndbs",     "size": "small"},
-    {"handle": "jarrettpaul",      "size": "small"},
-    {"handle": "trickx_5",         "size": "small"},
-    {"handle": "prest0ndavenport", "size": "mid"},
-    {"handle": "overtimeszn",      "size": "large"},
-    {"handle": "ajgreene15",       "size": "large"},
-]
+BRIEF_TYPE     = os.environ.get("BRIEF_TYPE", "morning")
 
 HASHTAGS = [
     "footballtraining","dbtraining","cornerback","1v1football",
-    "widereceivertraining","footballdrills","footballworkout",
+    "widereceiverstraining","footballdrills","footballworkout",
     "highschoolfootball","collegefootball","defensiveback","7on7",
-    "cfb","footballtiktok","football","d1","d1athlete",
-    "footballedit","footballhighlight","dblife","nfl","dbcamp"
+    "cfb","footballtiktok","d1","d1athlete","footballedit",
+    "footballhighlight","dblife","nfl","dbcamp","gridiron"
 ]
 
-# View tier thresholds
-MIN_VIEWS_HARD     = 20_000   # absolute floor -- never show below this
-MIN_VIEWS_FAST_RISE = 10_000  # exception: sub-20K but posted < 24h ago with good ratio
-TIER_ON_THE_RISE   = 20_000   # 20K-45K
-TIER_GOOD_ZONE     = 50_000   # 50K-100K
-TIER_VIRAL         = 100_000  # 100K+
-TIER_MEGA          = 500_000  # 500K+
+CREATOR_HANDLES = [
+    "jalen.ramsey","sauce.gardner.db","patricksuisala",
+    "db_elite_training","cornerback.university","dbcamp.official",
+    "footballgrind.official","athletelifestyle.db"
+]
 
-# Sound virality: must be used in 5+ niche videos within 7 days
+MIN_VIEWS_HARD       = 20_000
+MIN_VIEWS_FAST_RISE  = 10_000
+TIER_ON_THE_RISE     = 20_000
+TIER_GOOD_ZONE       = 50_000
+TIER_VIRAL           = 100_000
+TIER_MEGA            = 500_000
 SOUND_MIN_NICHE_VIDS = 5
+SOUND_MIN_TOP_PLAYS  = 20_000
+CREATOR_MAX_FANS     = 50_000
+SEVEN_DAYS_SECS      = 7 * 24 * 3600
 
-# -- FALLBACK DATA (used when Apify returns 0 results) ----------------
-FALLBACK_SOUNDS = [
-    {"title": "Like That", "author": "Future, Metro Boomin, Kendrick Lamar",
-     "rank": 1, "rank_diff": 12,
-     "link": "https://www.tiktok.com/search?q=Like+That+Future+Metro+Boomin",
-     "cover": "", "score": 7, "category": "general", "rising": True, "usedCount": 8, "maxPlays": 4200000},
-    {"title": "All Eyes On Me Workout Edit", "author": "2Pac",
-     "rank": 2, "rank_diff": 5,
-     "link": "https://www.tiktok.com/search?q=All+Eyes+On+Me+2Pac+workout",
-     "cover": "", "score": 8, "category": "workout", "rising": True, "usedCount": 6, "maxPlays": 1800000},
-    {"title": "TGIF", "author": "GloRilla",
-     "rank": 3, "rank_diff": 8,
-     "link": "https://www.tiktok.com/search?q=TGIF+GloRilla",
-     "cover": "", "score": 6, "category": "general", "rising": True, "usedCount": 5, "maxPlays": 3100000},
-    {"title": "Buttons", "author": "Sia",
-     "rank": 4, "rank_diff": 3,
-     "link": "https://www.tiktok.com/search?q=Buttons+Sia",
-     "cover": "", "score": 7, "category": "workout", "rising": False, "usedCount": 4, "maxPlays": 920000},
-    {"title": "Not Like Us", "author": "Kendrick Lamar",
-     "rank": 5, "rank_diff": 2,
-     "link": "https://www.tiktok.com/search?q=Not+Like+Us+Kendrick+Lamar",
-     "cover": "", "score": 6, "category": "general", "rising": False, "usedCount": 4, "maxPlays": 5600000},
-]
-
-FALLBACK_CREATORS = [
-    {"handle": "noe_ma2s", "size": "micro", "fans": 905,
-     "videos": [{"desc": "Release work drill -- WR footwork and route running", "plays": 38900,
-                 "likes": 2100, "shares": 310, "saves": 580, "sound": "original sound",
-                 "sound_author": "noe_ma2s", "thumb": "", "url": "https://www.tiktok.com/@noe_ma2s",
-                 "fans": 905, "viral": True, "pillar": "drills", "days_ago": 3,
-                 "format_type": "Tutorial / Technique Breakdown",
-                 "hook_analysis": "Opens on hands â immediate action, no intro. Short reps, each one clean. This format works because it's ppecific and repeatable.",
-                 "copy_this": "Film 3 reps of one specific technique. No talking intro. Start on the movement.",
-                 "viral_reason": "MICRO VIRAL -- 38.9K views with only 905 followers. 43x follower ratio. Study this format."}]},
-    {"handle": "_wakeemup3", "size": "small", "fans": 6133,
-     "videos": [{"desc": "DB undersized but never outworked -- motivational training clip", "plays": 515800,
-                 "likes": 41000, "shares": 6200, "saves": 9100, "sound": "motivational audio",
-                 "sound_author": "", "thumb": "", "url": "https://www.tiktok.com/@_wakeemup3",
-                 "fans": 6133, "viral": True, "pillar": "motivation", "days_ago": 2,
-                 "format_type": "Raw Authentic Story",
-                 "hook_analysis": "Caption does the heavy lifting -- 'undersized but never outworked' speaks directly to every DB who felt doubted. High shares because people tag their teammates.",
-                 "copy_this": "Lead with your underdog identity in the caption. Raw training footage, no polish. Let the caption create the emotion.",
-                 "viral_reason": "MEGA VIRAL -- 515.8K views on 6.1K account. 84x follower ratio. Raw authentic energy."}]},
-    {"handle": "khispammmm", "size": "small", "fans": 11300,
-     "videos": [{"desc": "Don't ever tell me I'm naturally gifted -- DB college grind", "plays": 23100,
-                 "likes": 1800, "shares": 290, "saves": 410, "sound": "motivational",
-                 "sound_author": "", "thumb": "", "url": "https://www.tiktok.com/@khispammmm",
-                 "fans": 11300, "viral": True, "pillar": "motivation", "days_ago": 4,
-                 "format_type": "Authentic Story / Chip on Shoulder",
-                 "hook_analysis": "Direct confrontation hook -- 'don't tell me I'm naturally gifted' triggers anyone who has heard that. College DB angle adds relatability.",
-                 "copy_this": "Start with something someone said about you that made you grind harder. Make the viewer feel that same chip.",
-                 "viral_reason": "HOT -- 23.1K views. College DB authentic story format working well."}]},
-    {"handle": "ejizzle00", "size": "small", "fans": 12000,
-     "videos": [{"desc": "Slideshow highlight reel -- getting buckets on the field", "plays": 560500,
-                 "likes": 48000, "shares": 5200, "saves": 7100, "sound": "Like That",
-                 "sound_author": "Future, Metro Boomin", "thumb": "", "url": "https://www.tiktok.com/@ejizzle00",
-                 "fans": 12000, "viral": True, "pillar": "1v1", "days_ago": 1,
-                 "format_type": "Slideshow Highlight Reel",
-                 "hook_analysis": "Slideshow format is low effort to make but high engagement -- people swipe through and rewatch. 'Like That' beat matches the confident energy. High saves = people coming back to study clips.",
-                 "copy_this": "Pick 5-8 of your best clips. Slideshow format, no editing needed. Use a hard-hitting sound. Caption = your record or stats.",
-                 "viral_reason": "MEGA VIRAL -- 560K views on 12K account. Slideshow format working huge right now."}]},
-    {"handle": "firstdowndbs", "size": "small", "fans": 42000,
-     "videos": [{"desc": "DB drill breakdown -- press coverage technique", "plays": 187000,
-                 "likes": 22000, "shares": 1800, "saves": 3100, "sound": "All Eyes On Me",
-                 "sound_author": "2Pac", "thumb": "", "url": "https://www.tiktok.com/@firstdowndbs",
-                 "fans": 42000, "viral": True, "pillar": "drills", "days_ago": 2,
-                 "format_type": "Educational Drill Breakdown",
-                 "hook_analysis": "High saves (3.1K) signal people are bookmarking this to use later -- that's the educational content signal. Saves drive the algorithm harder than likes for this content type.",
-                 "copy_this": "Teach one specific technique. Name it. Show it 3 ways. Saves will carry the reach.",
-                 "viral_reason": "VIRAL -- 187K views. High saves signal educational value -- good format to replicate."}]},
-]
-
-FALLBACK_TAGS = [
-    ("dbtraining", {"views": 890000000, "top_plays": 187000}),
-    ("cornerback", {"views": 620000000, "top_plays": 94000}),
-    ("footballtraining", {"views": 4200000000, "top_plays": 61000}),
-    ("1v1football", {"views": 340000000, "top_plays": 94000}),
-    ("footballdrills", {"views": 1800000000, "top_plays": 187000}),
-]
-
-IDEA_TEMPLATES = {
-    "1v1": [
-        "1v1 drill against [opponent type] -- show 3 reps, win each one, caption: 'Nobody getting past me #1v1 #db'",
-        "Film yourself shutting down a WR route for route -- voiceover explaining your read at each step",
-        "React to a viral 1v1 clip then show your version of the same matchup",
-        "Press coverage tutorial: 3 different WR releases, how you handle each one",
-        "'Can you guard me?' challenge -- invite a WR friend, film the whole session raw",
-    ],
-    "drills": [
-        "4 drills every DB should do before practice -- list format, each drill 5 seconds",
-        "The ONE drill that fixed my backpedal -- before/after clip",
-        "Morning drill routine from zero -- film your actual warmup start to finish",
-        "Breakdown: how to mirror a WR's hips on a double move (slow-mo + voiceover)",
-        "'DB Fundamentals Day [X]' series -- one technique per video, consistent format",
-    ],
-    "workout": [
-        "Speed workout that adds 0.2 seconds to your 40 -- 3 exercises, film each one",
-        "DB combine prep workout -- show exactly what you do 8 weeks out",
-        "Gym session focused on explosion: box jumps, hip thrusts, band work",
-        "The workout nobody talks about for DBs -- hip flexibility and change of direction",
-        "Morning vs night workout routine -- film both, show the difference in energy",
-    ],
-    "motivation": [
-        "Voiceover on outdoor training: 'This is what the offseason looks like when you want it'",
-        "'Nobody is outworking me this offseason' -- raw training clips, no music just sounds",
-        "Show a rejection or setback + what you did the next morning (authentic story)",
-        "Day in the life: 5AM to 10PM grind day -- full vlog style",
-        "'I train like this so game day feels easy' -- connect your drills to real game situations",
-    ]
+# -- AMERICAN FOOTBALL FILTER ----------------------------------------
+FOOTBALL_KEEP = {
+    "quarterback","qb","db","wr","cornerback","corner","linebacker","lb",
+    "safety","defensive back","snap","route","blitz","7on7","d1","gridiron",
+    "pigskin","end zone","touchdown","td","field goal","punt","recruit",
+    "spring ball","pads","helmet","nfl","ncaa","cfb","college football",
+    "football","scrimmage","playbook","offense","defense","lineman",
+    "running back","rb","tight end","te","wide receiver","pass rush",
+    "db camp","football camp","dbcamp","dbtraining","footballtraining",
+    "footballdrills","footballworkout","footballhighlight","footballedit",
+    "footballtiktok","dblife","d1athlete","highschoolfootball","collegefootball",
+    "defensiveback","1v1football","widereceiverstraining","dbtraining",
+    "cornerback","gridiron","american football"
 }
 
-# -- HOOK / FORMAT ANALYSIS -------------------------------------------
-FORMAT_SIGNALS = {
-    "Tutorial / Technique Breakdown": ["drill","technique","how to","breakdown","tutorial","step","tip","fix","teach","learn","form"],
-    "Raw Authentic Story":            ["story","nobody","never","told me","they said","doubted","grind","real","honest","truth","journey"],
-    "Slideshow Highlight Reel":       ["highlights","reel","clips","best","top","season","game","plays","comp"],
-    "1v1 / Challenge":                ["1v1","challenge","guard me","stop me","lock","shut down","vs","versus","battle"],
-    "Day in the Life / Vlog":         ["day in","vlog","morning","routine","daily","wake up","schedule","life of"],
-    "Motivational / Chip on Shoulder":["motivated","chip","underrated","sleep on","prove","doubters","outwork","mentality","mindset","grind"],
-    "Workout / Training Footage":     ["workout","training","gym","lift","speed","agility","reps","sets","session","combine"],
+SOCCER_REJECT = {
+    "soccer","pitch","keeper","penalty kick","premier league","uefa","fifa",
+    "footy","futbol","hat trick","nil nil","clean sheet","offside",
+    "dribble","header","free kick","goalkeeper","bundesliga","la liga",
+    "serie a","ligue 1","mls","champions league","world cup soccer",
+    "football club","fc ","united fc","city fc"
 }
 
-def analyze_hook(desc, plays, likes, shares, saves):
-    """Infer format type and generate a 'copy this' note from video metadata."""
-    desc_lower = (desc or "").lower()
+def is_american_football(text):
+    """Returns True if content is American football, False if soccer/other."""
+    if not text:
+        return False
+    t = text.lower()
+    # Hard reject soccer
+    for s in SOCCER_REJECT:
+        if s in t:
+            return False
+    # Must have at least one American football signal
+    for k in FOOTBALL_KEEP:
+        if k in t:
+            return True
+    return False
 
-    # Detect format
-    fmt = "Raw Training Footage"
-    for format_name, signals in FORMAT_SIGNALS.items():
-        if any(s in desc_lower for s in signals):
-            fmt = format_name
-            break
+def score_football_confidence(text):
+    """Score 0-10 how strongly American football this content is."""
+    if not text:
+        return 0
+    t = text.lower()
+    for s in SOCCER_REJECT:
+        if s in t:
+            return 0
+    score = sum(1 for k in FOOTBALL_KEEP if k in t)
+    return min(score, 10)
 
-    # Engagement signals
-    notes = []
-    if saves > 0 and likes > 0 and saves / max(likes, 1) > 0.08:
-        notes.append("High saves ratio -- people are bookmarking this. Educational/reference value is strong.")
-    if shares > 0 and likes > 0 and shares / max(likes, 1) > 0.05:
-        notes.append("High share rate -- this content triggers people to tag others. Relatable or hype factor.")
-    if likes > 0 and plays > 0 and likes / max(plays, 1) > 0.07:
-        notes.append("Strong like rate -- high resonance with the audience watching.")
+# -- HOOK DATABASE ---------------------------------------------------
+HOOK_PATTERNS = [
+    "pov", "nobody talks about", "the difference between", "this is what",
+    "coach finally", "day in the life", "watch me", "they don't show you",
+    "d1 vs", "high school vs college", "what db camp really looks like",
+    "before and after", "this drill", "if you play db", "grind don't stop",
+    "they called me", "committed", "offer day", "first practice",
+    "nobody saw this coming", "raw footage", "unfiltered", "real talk"
+]
 
-    ratio = plays / max(likes + shares + saves + 1, 1)
-    if ratio > 20 and not notes:
-        notes.append("Wide reach relative to engagement -- algorithm is pushing this beyond existing followers.")
+def extract_hooks(desc):
+    """Extract matching hook patterns from a video description."""
+    if not desc:
+        return []
+    d = desc.lower()
+    return [p for p in HOOK_PATTERNS if p in d]
 
-    hook_analysis = f"Format: {fmt}. " + (" ".join(notes) if notes else "Solid niche engagement pattern.")
+# -- CONTENT TYPE CLASSIFIER -----------------------------------------
+CONTENT_TYPES = {
+    "hype":         ["hype","lit","fire","lets go","lock in"],
+    "cinematic":    ["cinematic","slow mo","film","aesthetic","vibes"],
+    "pov":          ["pov","point of view"],
+    "emotional":    ["emotional","feel","real talk","truth","story"],
+    "motivational": ["motivation","grind","work","believe","faith","god"],
+    "locker_room":  ["locker room","team","brotherhood","culture","family"],
+    "grindset":     ["grind","work ethic","no days off","discipline","sacrifice"],
+    "rivalry":      ["1v1","competition","who wins","battle","vs"],
+    "transformation":["transformation","glow up","before","after","progress"],
+    "relatable":    ["relatable","fr","real","facts","too real","same"]
+}
 
-    # Copy this suggestion
-    copy_map = {
-        "Tutorial / Technique Breakdown": "Film one specific technique. Name it in the caption. Show 3 clean reps. No talking intro -- start on the movement.",
-        "Raw Authentic Story": "Lead with a real moment -- a doubt, a setback, a chip. Raw footage. Let the caption carry the emotion.",
-        "Slideshow Highlight Reel": "Pick 5-8 best clips. Slideshow format, minimal editing. Hard-hitting sound. Caption = your record or a bold statement.",
-        "1v1 / Challenge": "Set up a clean 1v1 rep. Film the win. Caption challenges someone specific or a position group.",
-        "Day in the Life / Vlog": "Film your actual day from first workout to last. No script. Authentic pace.",
-        "Motivational / Chip on Shoulder": "Start with what someone said about you. Let the training footage be your answer.",
-        "Workout / Training Footage": "Film a full session or one standout exercise. Show intensity. Caption = what you're training for.",
-        "Raw Training Footage": "Keep it raw and real. The less polished, the more authentic it feels. Caption adds the story.",
-    }
-    copy_this = copy_map.get(fmt, "Keep it simple and specific to one idea per video.")
+def classify_content(desc):
+    if not desc:
+        return "general"
+    d = desc.lower()
+    for ctype, keywords in CONTENT_TYPES.items():
+        if any(k in d for k in keywords):
+            return ctype
+    return "general"
 
-    return fmt, hook_analysis, copy_this
+# -- FORMAT FATIGUE SIGNALS ------------------------------------------
+FATIGUED_FORMATS = [
+    "put this audio on your page","comment your number","follow for part 2",
+    "duet this","stitch this","which one are you","rate yourself",
+    "this went viral","blew up","millions of views"
+]
 
+def is_fatigued_format(desc):
+    if not desc:
+        return False
+    d = desc.lower()
+    return any(f in d for f in FATIGUED_FORMATS)
 
-# -- APIFY HELPERS ----------------------------------------------------
-def run_actor(actor_id, input_data, timeout=240):
-    """Run an Apify actor and return its dataset items."""
+# -- CONFIDENCE SCORING ----------------------------------------------
+def confidence_score(plays, fans, hours_old, niche_signals, is_football, hook_count, content_type):
+    """Score 0-100 confidence that this is a high-value opportunity."""
+    if not is_football:
+        return 0
+    score = 0
+    # Views tier (max 30)
+    if plays >= TIER_MEGA:       score += 30
+    elif plays >= TIER_VIRAL:    score += 25
+    elif plays >= TIER_GOOD_ZONE:score += 18
+    elif plays >= TIER_ON_THE_RISE:score += 10
+    else:                        score += 5
+    # Follower-to-view ratio (max 30)
+    ratio = plays / max(fans, 1)
+    if ratio >= 50:   score += 30
+    elif ratio >= 20: score += 22
+    elif ratio >= 10: score += 15
+    elif ratio >= 5:  score += 8
+    else:             score += 2
+    # Recency (max 20)
+    if hours_old <= 24:   score += 20
+    elif hours_old <= 48: score += 15
+    elif hours_old <= 72: score += 10
+    elif hours_old <= 168:score += 5
+    # Niche signals (max 10)
+    score += min(niche_signals * 2, 10)
+    # Hook quality (max 5)
+    score += min(hook_count * 2, 5)
+    # Content type bonus (max 5)
+    if content_type in ("rivalry","grindset","pov","emotional"):
+        score += 5
+    elif content_type in ("motivational","locker_room","transformation"):
+        score += 3
+    return min(score, 100)
+
+def sound_confidence(niche_vids, max_plays, hours_since_first, adoption_accel):
+    """Score 0-100 for a trending sound."""
+    score = 0
+    if niche_vids >= 20:  score += 30
+    elif niche_vids >= 10:score += 20
+    elif niche_vids >= 5: score += 12
+    else:                 score += 5
+    if max_plays >= TIER_MEGA:       score += 25
+    elif max_plays >= TIER_VIRAL:    score += 20
+    elif max_plays >= TIER_GOOD_ZONE:score += 14
+    elif max_plays >= TIER_ON_THE_RISE:score += 8
+    # Recency of trend start (max 25)
+    if hours_since_first <= 24:   score += 25
+    elif hours_since_first <= 48: score += 18
+    elif hours_since_first <= 72: score += 12
+    elif hours_since_first <= 168:score += 6
+    # Adoption acceleration (max 20)
+    score += min(int(adoption_accel * 20), 20)
+    return min(score, 100)
+
+def audio_lifecycle(niche_vids, hours_since_first, adoption_accel):
+    """Classify sound lifecycle stage."""
+    if niche_vids < 3:
+        return "EARLY"
+    if niche_vids < 8 and hours_since_first < 48:
+        return "HEATING UP"
+    if niche_vids >= 8 and adoption_accel > 0.5:
+        return "PEAKING"
+    if niche_vids >= 15 and hours_since_first > 120:
+        return "SATURATED"
+    if adoption_accel < 0.1 and hours_since_first > 72:
+        return "DECLINING"
+    return "HEATING UP"
+
+LIFECYCLE_EMOJI = {
+    "EARLY":      "ð",
+    "HEATING UP": "â¡",
+    "PEAKING":    "ð¥",
+    "SATURATED":  "â ï¸",
+    "DECLINING":  "ð"
+}
+
+# -- CREATOR TIER ----------------------------------------------------
+def creator_tier(fans):
+    if fans < 5_000:    return "MICRO", "#f87171"
+    if fans < 15_000:   return "EMERGING", "#4ade80"
+    if fans < 30_000:   return "SMALL", "#4a9eff"
+    if fans <= 50_000:  return "RISING", "#888"
+    return None, None
+
+# -- LONG-TERM MEMORY ------------------------------------------------
+MEMORY_FILE = "trend_memory.json"
+
+def load_memory():
     try:
-        if not APIFY_TOKEN:
-            print("  [ERROR] APIFY_TOKEN is not set!")
-            return []
-        actor_slug = actor_id.replace("/", "~")
-        print(f"  [DEBUG] Starting actor {actor_slug} with input: {json.dumps(input_data)}")
-        resp = requests.post(
-            f"{APIFY_BASE}/acts/{actor_slug}/runs",
-            params={"token": APIFY_TOKEN},
-            json=input_data,
-            timeout=30
-        )
-        print(f"  [DEBUG] Actor start HTTP {resp.status_code}")
-        if not resp.ok:
-            print(f"  [ERROR] Actor start failed: {resp.text[:300]}")
-            return []
-        run_data   = resp.json()["data"]
-        run_id     = run_data["id"]
-        dataset_id = run_data["defaultDatasetId"]
-        print(f"  [DEBUG] Run ID={run_id}, dataset={dataset_id}")
+        with open(MEMORY_FILE) as f:
+            return json.load(f)
+    except:
+        return {"sounds": {}, "hooks": {}, "creators": {}, "formats": {}, "runs": 0}
 
-        deadline = time.time() + timeout
-        status   = "RUNNING"
-        while time.time() < deadline:
-            sr = requests.get(
-                f"{APIFY_BASE}/actor-runs/{run_id}",
-                params={"token": APIFY_TOKEN},
-                timeout=15
+def save_memory(memory):
+    with open(MEMORY_FILE, "w") as f:
+        json.dump(memory, f, indent=2)
+
+def update_memory(memory, sounds, creators, top_videos):
+    memory["runs"] = memory.get("runs", 0) + 1
+    now_ts = time.time()
+    # Track sounds
+    for s in sounds:
+        title = s.get("title", "")
+        if not title:
+            continue
+        if title not in memory["sounds"]:
+            memory["sounds"][title] = {"first_seen": now_ts, "appearances": 0, "max_plays": 0}
+        memory["sounds"][title]["appearances"] += 1
+        memory["sounds"][title]["max_plays"] = max(memory["sounds"][title]["max_plays"], s.get("maxPlays", 0))
+        memory["sounds"][title]["last_seen"] = now_ts
+    # Track hooks
+    for v in top_videos:
+        desc = v.get("text", v.get("desc", ""))
+        for hook in extract_hooks(desc):
+            if hook not in memory["hooks"]:
+                memory["hooks"][hook] = {"count": 0, "max_plays": 0}
+            memory["hooks"][hook]["count"] += 1
+            memory["hooks"][hook]["max_plays"] = max(
+                memory["hooks"][hook]["max_plays"],
+                v.get("playCount", 0)
             )
-            if not sr.ok:
-                print(f"  [WARN] Status poll HTTP {sr.status_code}")
-                time.sleep(10)
-                continue
-            status = sr.json()["data"]["status"]
-            usage  = sr.json()["data"].get("usageTotalUsd", "?")
-            print(f"  [DEBUG] Run status={status}, usageUsd={usage}")
-            if status in ("SUCCEEDED", "FAILED", "ABORTED", "TIMED-OUT"):
-                break
-            time.sleep(10)
+    # Track creators
+    for c in creators:
+        handle = c.get("handle", "")
+        if not handle:
+            continue
+        if handle not in memory["creators"]:
+            memory["creators"][handle] = {"first_seen": now_ts, "appearances": 0, "max_plays": 0}
+        memory["creators"][handle]["appearances"] += 1
+        if c.get("videos"):
+            memory["creators"][handle]["max_plays"] = max(
+                memory["creators"][handle]["max_plays"],
+                max((v.get("plays",0) for v in c["videos"]), default=0)
+            )
+    return memory
 
-        if status != "SUCCEEDED":
-            print(f"  [WARN] {actor_id} finished with status={status}")
-            return []
+# -- FALLBACK DATA ---------------------------------------------------
+FALLBACK_SOUNDS = [
+    {"title": "Thought About That", "author": "Future", "rank": 1, "rank_diff": 2,
+     "cover": "", "link": "https://www.tiktok.com/music/Thought-About-That-7234567890",
+     "trend": [], "maxPlays": 85000, "niche_videos": [], "lifecycle": "HEATING UP", "confidence": 72},
+]
+FALLBACK_CREATORS = []
+FALLBACK_TAGS = [("footballtraining", {"views": 2_500_000_000})]
 
-        items_resp = requests.get(
-            f"{APIFY_BASE}/datasets/{dataset_id}/items",
-            params={"token": APIFY_TOKEN, "clean": "true", "limit": 500},
-            timeout=30
+# -- APIFY FETCH -----------------------------------------------------
+def apify_run(actor, input_data, timeout=300):
+    if not APIFY_TOKEN:
+        print("[WARN] No APIFY_TOKEN")
+        return []
+    try:
+        r = requests.post(
+            f"https://api.apify.com/v2/acts/{actor}/run-sync-get-dataset-items",
+            params={"token": APIFY_TOKEN, "timeout": timeout, "memory": 512},
+            json=input_data, timeout=timeout + 30
         )
-        print(f"  [DEBUG] Dataset fetch HTTP {items_resp.status_code}")
-        if not items_resp.ok:
-            print(f"  [ERROR] Dataset fetch failed: {items_resp.text[:200]}")
-            return []
-        items = items_resp.json()
-        print(f"  [DEBUG] Got {len(items)} items from dataset")
-        return items
+        r.raise_for_status()
+        return r.json() if isinstance(r.json(), list) else []
     except Exception as e:
-        print(f"  [ERROR] {actor_id}: {e}")
+        print(f"[ERROR] Apify {actor}: {e}")
         return []
 
-
-# -- SINGLE FETCH (reuse one actor call for all three parsers) --------
 def fetch_all_raw():
-    """
-    One actor call, 8 hashtags x 15 results = ~120 items.
-    sortType:latest ensures we get recent posts, not all-time viral.
-    7-day filter is applied again in each parser as a safety net.
-    """
-    print("  Fetching TikTok data (single actor call, latest sort)...")
-    results = run_actor("clockworks/tiktok-hashtag-scraper", {
-        "hashtags": [
-            "footballtraining", "dbtraining", "cornerback",
-            "1v1football", "footballdrills", "defensiveback",
-            "footballworkout", "7on7", "cfb", "footballtiktok",
-            "football", "d1", "d1athlete", "footballedit", "dblife"
-        ],
+    print("  Fetching TikTok data via Apify (sortType:latest)...")
+    raw = apify_run("clockworks/tiktok-hashtag-scraper", {
+        "hashtags": HASHTAGS,
         "resultsPerPage": 20,
         "sortType": "latest",
-        "shouldDownloadCovers": False,
-        "shouldDownloadVideos": False,
-    }, timeout=300)
-    if not results:
-        print("  [WARN] Actor returned 0 items -- will use curated fallback data")
-    else:
-        print(f"  [OK] Got {len(results)} raw items (latest sort)")
-    return results
+        "proxyConfiguration": {"useApifyProxy": True}
+    })
+    print(f"  Raw items: {len(raw)}")
+    return raw
 
+# -- VIDEO FILTER (American football gate) ---------------------------
+def video_passes_football_gate(v):
+    """Must pass American football check. Returns (passes, confidence_score)."""
+    desc    = v.get("text", v.get("desc", ""))
+    tags    = " ".join(c.get("title","") for c in v.get("challenges",[]) if isinstance(c,dict))
+    sound   = v.get("musicMeta",{}).get("musicName","")
+    author  = v.get("authorMeta",{}).get("name","")
+    combo   = f"{desc} {tags} {sound} {author}"
+    passes  = is_american_football(combo)
+    signals = score_football_confidence(combo)
+    return passes, signals
 
-# -- SCORING ----------------------------------------------------------
-def score_sound(sound):
-    """Score a sound 0-10 for football/workout relevance."""
-    score = 0
-    name  = (sound.get("title", "") + " " + sound.get("author", "")).lower()
-    football_hits = sum(1 for kw in FOOTBALL_KW if kw in name)
-    score += football_hits * 3
-    rank_diff = sound.get("rank_diff") or 0
-    if rank_diff > 20:
-        score += 3
-    elif rank_diff > 5:
-        score += 2
-    elif rank_diff > 0:
-        score += 1
-    trend = sound.get("trend", [])
-    if len(trend) >= 2:
-        first_val = trend[0].get("value", 0)
-        last_val  = trend[-1].get("value", 0)
-        if first_val > 0 and last_val / first_val > 3:
-            score += 2
-        elif last_val > 0.5:
-            score += 1
-    score = min(score, 10)
-    if football_hits > 0:
-        cat = "football"
-    elif any(k in name for k in ["gym","lift","pump","grind","beast","power","energy","fire","hype","motivation"]):
-        cat = "workout"
-    elif any(k in name for k in ["sport","game","play","team","win","champion","goat"]):
-        cat = "sport"
-    else:
-        cat = "general"
-    return score, cat
-
-
-def get_pillar(text):
-    text = text.lower()
-    for pillar, kws in PILLARS.items():
-        for kw in kws:
-            if kw in text:
-                return pillar
-    return None
-
-
-# -- DATA FETCHERS ----------------------------------------------------
+# -- FETCH TRENDING SOUNDS -------------------------------------------
 def fetch_trending_sounds(raw):
-    """Extract trending sounds from pre-fetched hashtag video results.
-    Only includes sounds used in videos from the last 7 days."""
-    print("  Parsing trending sounds...")
-    cutoff = time.time() - SEVEN_DAYS
-    sound_counts = {}
-    for item in raw:
-        create_time = item.get("createTime", 0) or 0
-        if create_time > 0 and create_time < cutoff:
+    now_ts = time.time()
+    sound_map = {}
+
+    for v in raw:
+        ct = v.get("createTime", 0)
+        if now_ts - ct > SEVEN_DAYS_SECS:
             continue
-        music    = item.get("musicMeta") or {}
-        title    = music.get("musicName", "") or music.get("musicOriginal", "")
-        author   = music.get("musicAuthor", "") or ""
-        music_id = music.get("musicId", "") or ""
-        plays    = item.get("playCount", 0) or 0
-        if not title or title.lower() in ("original sound", ""):
+        passes, signals = video_passes_football_gate(v)
+        if not passes:
             continue
-        key = music_id or (title + "|" + author)
-        if key not in sound_counts:
-            if music_id:
-                safe_title = title.replace(' ', '-').replace("'", "").replace('"', '')
-                link = f"https://www.tiktok.com/music/{safe_title}-{music_id}"
-            else:
-                q = (title + " " + author).replace(" ", "+")
-                link = f"https://www.tiktok.com/search?q={q}"
-            sound_counts[key] = {
-                "title": title, "author": author,
-                "usedCount": 0, "maxPlays": 0,
-                "link": link,
-                "cover": "",
+        plays = v.get("playCount", 0) or v.get("stats",{}).get("playCount",0)
+        if plays < MIN_VIEWS_HARD:
+            # fast-rise exception
+            hours_old = (now_ts - ct) / 3600 if ct else 999
+            ratio = plays / max(v.get("authorMeta",{}).get("fans",1), 1)
+            if not (hours_old < 24 and ratio > 5 and plays >= MIN_VIEWS_FAST_RISE):
+                continue
+
+        m    = v.get("musicMeta", {})
+        sid  = m.get("musicId","") or m.get("musicName","")
+        if not sid:
+            continue
+
+        hours_old = (now_ts - ct) / 3600 if ct else 999
+        fans  = v.get("authorMeta",{}).get("fans",1)
+        ratio = plays / max(fans, 1)
+        url   = v.get("webVideoUrl","")
+        author= v.get("authorMeta",{}).get("name","")
+        desc  = v.get("text", v.get("desc",""))
+        hooks = extract_hooks(desc)
+        ctype = classify_content(desc)
+        cscore = confidence_score(plays, fans, hours_old, signals, True, len(hooks), ctype)
+
+        niche_video = {
+            "url":    url,
+            "author": author,
+            "fans":   fans,
+            "plays":  plays,
+            "desc":   desc[:100],
+            "hours_old": hours_old,
+            "ratio":  ratio,
+            "confidence": cscore,
+            "hooks":  hooks,
+            "content_type": ctype
+        }
+
+        if sid not in sound_map:
+            sound_map[sid] = {
+                "title":       m.get("musicName","Unknown Sound"),
+                "author":      m.get("musicAuthor",""),
+                "link":        f"https://www.tiktok.com/music/{m.get('musicName','').replace(' ','-')}-{m.get('musicId','')}",
+                "cover":       m.get("musicCover",""),
+                "niche_videos":[],
+                "max_plays":   0,
+                "first_seen":  ct,
+                "last_seen":   ct,
+                "plays_24h":   0,
+                "plays_3d":    0,
+                "plays_7d":    0,
+                "videos_24h":  0,
+                "videos_3d":   0,
+                "videos_7d":   0,
             }
-        sound_counts[key]["usedCount"] += 1
-        if plays > sound_counts[key]["maxPlays"]:
-            sound_counts[key]["maxPlays"] = plays
+        entry = sound_map[sid]
+        entry["niche_videos"].append(niche_video)
+        entry["max_plays"]  = max(entry["max_plays"], plays)
+        entry["first_seen"] = min(entry["first_seen"], ct) if ct else entry["first_seen"]
+        entry["last_seen"]  = max(entry["last_seen"], ct) if ct else entry["last_seen"]
+        if hours_old <= 24:
+            entry["videos_24h"] += 1
+            entry["plays_24h"]  += plays
+        if hours_old <= 72:
+            entry["videos_3d"]  += 1
+            entry["plays_3d"]   += plays
+        entry["videos_7d"] += 1
+        entry["plays_7d"]  += plays
 
     sounds = []
-    for s in sound_counts.values():
-        # Require: top video has at least 20K plays AND used in 5+ niche videos in 7 days
-        if s["maxPlays"] < MIN_VIEWS_HARD:
+    for sid, s in sound_map.items():
+        nv = len(s["niche_videos"])
+        if nv < SOUND_MIN_NICHE_VIDS or s["max_plays"] < SOUND_MIN_TOP_PLAYS:
             continue
-        if s["usedCount"] < SOUND_MIN_NICHE_VIDS:
-            continue
-        sc, cat = score_sound({"title": s["title"], "author": s["author"]})
+        hours_since_first = (now_ts - s["first_seen"]) / 3600 if s["first_seen"] else 168
+        accel = s["videos_24h"] / max(nv, 1)
+        lifecycle = audio_lifecycle(nv, hours_since_first, accel)
+        conf = sound_confidence(nv, s["max_plays"], hours_since_first, accel)
+        # Sort niche videos by confidence desc, then recency
+        s["niche_videos"].sort(key=lambda x: (-x["confidence"], x["hours_old"]))
         sounds.append({
-            "title":     s["title"],
-            "author":    s["author"],
-            "rank":      0,
-            "rank_diff": 0,
-            "link":      s["link"],
-            "cover":     s["cover"],
-            "score":     sc,
-            "category":  cat,
-            "rising":    s["usedCount"] >= 8,   # "rising" = used in 8+ videos
-            "usedCount": s["usedCount"],
-            "maxPlays":  s["maxPlays"],
+            **s,
+            "niche_video_count": nv,
+            "lifecycle":   lifecycle,
+            "confidence":  conf,
+            "accel":       accel,
+            "hours_since_first": hours_since_first,
         })
 
-    sounds.sort(key=lambda x: -x["maxPlays"])
+    sounds.sort(key=lambda x: (-x["confidence"], -x["max_plays"]))
+    print(f"  Trending sounds (football-filtered): {len(sounds)}")
     return sounds[:15]
 
-
+# -- FETCH CREATOR SPY -----------------------------------------------
 def fetch_creator_spy(raw):
-    """
-    Find emerging creators from pre-fetched hashtag video results.
-    KEY UPGRADE v5:
-    - Hard 7-day cutoff -- no old videos ever
-    - Per creator: collect up to 5 videos, sorted by recency (newest first) then plays
-    - Run hook analysis on each viral video
-    - Micro/small sorted by follower ratio
-    """
-    print("  Parsing creator data (v5 -- recency first)...")
-    cutoff = time.time() - SEVEN_DAYS
-    now    = time.time()
+    now_ts = time.time()
     creator_map = {}
 
     for v in raw:
-        # Hard 7-day recency gate -- if no createTime, skip
-        create_time = v.get("createTime", 0) or 0
-        if create_time == 0 or create_time < cutoff:
+        ct = v.get("createTime", 0)
+        if now_ts - ct > SEVEN_DAYS_SECS:
+            continue
+        passes, signals = video_passes_football_gate(v)
+        if not passes:
+            continue
+        plays = v.get("playCount",0) or v.get("stats",{}).get("playCount",0)
+        if plays < MIN_VIEWS_HARD:
+            hours_old = (now_ts - ct) / 3600 if ct else 999
+            ratio = plays / max(v.get("authorMeta",{}).get("fans",1),1)
+            if not (hours_old < 24 and ratio > 5 and plays >= MIN_VIEWS_FAST_RISE):
+                continue
+
+        meta  = v.get("authorMeta",{})
+        fans  = meta.get("fans",0)
+        if fans > CREATOR_MAX_FANS or fans < 100:
             continue
 
-        author = v.get("authorMeta") or {}
-        handle = author.get("name", "") or ""
+        tier_name, _ = creator_tier(fans)
+        if tier_name is None:
+            continue
+
+        handle = meta.get("name","")
         if not handle:
             continue
 
-        fans   = author.get("fans", 0) or 0
-        plays  = v.get("playCount", 0) or 0
-        likes  = v.get("diggCount", 0) or 0
-        shares = v.get("shareCount", 0) or 0
-        saves  = v.get("collectCount", 0) or 0
-        desc   = v.get("text", "") or ""
-        sound  = (v.get("musicMeta") or {}).get("musicName", "") or ""
-        sound_author = (v.get("musicMeta") or {}).get("musicAuthor", "") or ""
-        thumb  = (v.get("videoMeta") or {}).get("coverUrl", "") or ""
-        url    = v.get("webVideoUrl", "") or ""
-
-        # Only track small/emerging creators (under 500K followers)
-        if fans > 500_000:
-            continue
-
-        # Days ago label
-        days_ago = max(0, int((now - create_time) / 86400))
-
-        # Follower ratio
+        hours_old = (now_ts - ct) / 3600 if ct else 999
         ratio = plays / max(fans, 1)
+        desc  = v.get("text", v.get("desc",""))
+        sound = v.get("musicMeta",{}).get("musicName","")
+        hooks = extract_hooks(desc)
+        ctype = classify_content(desc)
+        fatigued = is_fatigued_format(desc)
+        cscore = confidence_score(plays, fans, hours_old, signals, True, len(hooks), ctype)
+        url   = v.get("webVideoUrl","")
 
-        # Hard minimum view gate: skip anything under 20K
-        # Exception: posted < 24h ago AND ratio > 5x AND at least 10K (fast rising)
-        hours_old = (now - create_time) / 3600
-        is_fast_rising = (hours_old < 24 and ratio > 5 and plays >= MIN_VIEWS_FAST_RISE)
-        if plays < MIN_VIEWS_HARD and not is_fast_rising:
-            continue
-
-        # Viral reason with new tier labels
-        viral_reason = ""
-        if plays >= TIER_MEGA:
-            viral_reason = f"MEGA VIRAL -- {fmt_plays(plays)} views, {ratio:.0f}x follower ratio. Study this format immediately."
-        elif plays >= TIER_VIRAL:
-            if shares > likes * 0.05:
-                viral_reason = f"VIRAL -- {fmt_plays(plays)} views. High share rate ({ratio:.0f}x ratio). Relatable/shareable content."
-            elif saves > likes * 0.1:
-                viral_reason = f"VIRAL -- {fmt_plays(plays)} views. High saves ({ratio:.0f}x ratio). Educational/reference value."
-            else:
-                viral_reason = f"VIRAL -- {fmt_plays(plays)} views ({ratio:.0f}x follower ratio). Strong engagement."
-        elif plays >= TIER_GOOD_ZONE:
-            viral_reason = f"GOOD ZONE -- {fmt_plays(plays)} views ({ratio:.0f}x follower ratio). Post your version now."
-        elif plays >= TIER_ON_THE_RISE:
-            viral_reason = f"ON THE RISE -- {fmt_plays(plays)} views ({ratio:.0f}x ratio). Gaining traction."
-        elif is_fast_rising:
-            viral_reason = f"FAST RISING -- {fmt_plays(plays)} views in {hours_old:.0f}h. Watch this one."
-
-        # Hook analysis
-        fmt_type, hook_analysis, copy_this = analyze_hook(desc, plays, likes, shares, saves)
+        vid_entry = {
+            "plays":     plays,
+            "desc":      desc[:120],
+            "url":       url,
+            "sound":     sound,
+            "days_ago":  int(hours_old // 24),
+            "hours_old": hours_old,
+            "ratio":     ratio,
+            "confidence":cscore,
+            "hooks":     hooks,
+            "content_type": ctype,
+            "fatigued":  fatigued,
+            "viral":     plays >= TIER_VIRAL,
+            "viral_reason": _viral_reason(plays, fans, hours_old, ctype),
+            "copy_this": _copy_this(desc, ctype, hooks),
+            "format_type": ctype.upper().replace("_"," "),
+            "hook_analysis": _hook_analysis(desc, hooks)
+        }
 
         if handle not in creator_map:
-            if fans < 5_000:
-                size = "micro"
-            elif fans < 50_000:
-                size = "small"
-            else:
-                size = "mid"
             creator_map[handle] = {
                 "handle": handle,
-                "size":   size,
                 "fans":   fans,
+                "size":   tier_name.lower(),
+                "pillar": _guess_pillar(desc),
+                "tag":    meta.get("id",""),
+                "author": meta.get("name",""),
                 "videos": []
             }
+        creator_map[handle]["videos"].append(vid_entry)
 
-        # Store up to 5 videos per creator
-        if len(creator_map[handle]["videos"]) < 5 and (plays >= MIN_VIEWS_HARD or is_fast_rising):
-            creator_map[handle]["videos"].append({
-                "desc":          desc[:120],
-                "plays":         plays,
-                "likes":         likes,
-                "shares":        shares,
-                "saves":         saves,
-                "sound":         sound,
-                "sound_author":  sound_author,
-                "thumb":         thumb,
-                "url":           url,
-                "fans":          fans,
-                "viral":         plays >= TIER_ON_THE_RISE or is_fast_rising,
-                "pillar":        get_pillar(desc),
-                "days_ago":      days_ago,
-                "create_time":   create_time,
-                "viral_reason":  viral_reason,
-                "format_type":   fmt_type,
-                "hook_analysis": hook_analysis,
-                "copy_this":     copy_this,
-            })
-
-    # For each creator: sort their videos by recency first (newest to oldest),
-    # then within same day by plays descending
+    # Sort each creator's videos: recency first, then plays
     for c in creator_map.values():
-        c["videos"].sort(key=lambda v: (-v["create_time"], -v["plays"]))
+        c["videos"].sort(key=lambda v: (v["hours_old"], -v["plays"]))
 
-    # Sort creators: micros/smalls first by ratio, then mid by plays
-    def creator_sort_key(c):
-        max_plays = max((v["plays"] for v in c["videos"]), default=0)
-        fans_ct   = c.get("fans", 1) or 1
-        ratio     = max_plays / fans_ct
-        size_rank = {"micro": 0, "small": 1, "mid": 2, "large": 3}.get(c["size"], 2)
-        if c["size"] in ("micro", "small"):
-            return (size_rank, -ratio)
-        return (size_rank, -max_plays)
+    # Sort creators: micro first, then by best ratio
+    def sort_key(c):
+        tier_order = {"micro":0,"emerging":1,"small":2,"rising":3}
+        t = tier_order.get(c["size"],4)
+        max_ratio = max((v["ratio"] for v in c["videos"]), default=0)
+        return (t, -max_ratio)
 
-    results = sorted(creator_map.values(), key=creator_sort_key)
-    return results[:15]
+    creators = sorted(creator_map.values(), key=sort_key)
+    print(f"  Creators (football-filtered, â¤50K): {len(creators)}")
+    return creators[:12]
 
+def _viral_reason(plays, fans, hours_old, ctype):
+    ratio = plays / max(fans,1)
+    parts = []
+    if ratio > 30: parts.append(f"{ratio:.0f}x follower ratio")
+    if hours_old < 48: parts.append("posted <48h ago")
+    if ctype in ("rivalry","grindset","pov"): parts.append(f"{ctype} format converts well")
+    return " Â· ".join(parts) if parts else ""
 
+def _copy_this(desc, ctype, hooks):
+    if hooks:
+        return f'Try hook: "{hooks[0].title()}" angle'
+    if ctype == "rivalry": return "Film a 1v1 or drill battle with this audio"
+    if ctype == "pov":     return "POV-style caption + intense training clip"
+    if ctype == "grindset":return "Early morning grind session, no talking"
+    if ctype == "emotional":return "Raw honest caption, slow-mo highlight"
+    return "Adapt format to your DB/training content"
+
+def _hook_analysis(desc, hooks):
+    if not desc:
+        return ""
+    d = desc[:80]
+    if hooks:
+        return f'Hook type: {hooks[0]} â opens strong'
+    if d.startswith("POV") or d.startswith("pov"):
+        return "POV open â high retention trigger"
+    if "?" in d[:30]:
+        return "Question hook â curiosity gap"
+    return ""
+
+def _guess_pillar(desc):
+    d = (desc or "").lower()
+    if any(x in d for x in ["1v1","vs","battle","competition"]): return "1v1 Competition"
+    if any(x in d for x in ["db","corner","defensive back","press","coverage"]): return "DB Training"
+    if any(x in d for x in ["workout","gym","lift","weight"]): return "Gym/Workout"
+    if any(x in d for x in ["god","faith","christian","blessed","pray"]): return "Faith"
+    if any(x in d for x in ["team","brother","culture","locker"]): return "Brotherhood"
+    if any(x in d for x in ["motivat","grind","discipline","mindset"]): return "Mindset"
+    return "Training"
+
+# -- FETCH HASHTAGS --------------------------------------------------
 def fetch_hashtags(raw):
-    print("  Parsing hashtag data...")
-    cutoff   = time.time() - SEVEN_DAYS
-    tag_data = {}
+    now_ts = time.time()
+    tag_map = {}
     top_videos = []
 
-    for item in raw:
-        create_time = item.get("createTime", 0) or 0
-        if create_time > 0 and create_time < cutoff:
+    for v in raw:
+        ct = v.get("createTime",0)
+        if now_ts - ct > SEVEN_DAYS_SECS:
             continue
+        passes, signals = video_passes_football_gate(v)
+        if not passes:
+            continue
+        plays = v.get("playCount",0) or v.get("stats",{}).get("playCount",0)
+        if plays < MIN_VIEWS_HARD:
+            continue
+        for ch in v.get("challenges",[]):
+            if not isinstance(ch, dict):
+                continue
+            tag   = ch.get("title","").lower()
+            views = ch.get("views",0) or ch.get("viewCount",0)
+            if tag:
+                tag_map[tag] = tag_map.get(tag, {"views":0,"count":0})
+                tag_map[tag]["views"] = max(tag_map[tag]["views"], views)
+                tag_map[tag]["count"] += 1
+        top_videos.append(v)
 
-        tag      = item.get("input", "").lower().strip("#")
-        plays    = item.get("playCount", 0) or 0
-        likes    = item.get("diggCount", 0) or 0
-        shares   = item.get("shareCount", 0) or 0
-        saves    = item.get("collectCount", 0) or 0
-        url      = item.get("webVideoUrl", "") or ""
-        desc     = item.get("text", "") or ""
-        thumb    = (item.get("videoMeta") or {}).get("coverUrl", "") or ""
-        sound    = (item.get("musicMeta") or {}).get("musicName", "") or ""
-        author   = (item.get("authorMeta") or {}).get("name", "") or ""
-        fans     = (item.get("authorMeta") or {}).get("fans", 0) or 0
-        ht_views = (item.get("searchHashtag") or {}).get("views", 0) or 0
+    tags = sorted(tag_map.items(), key=lambda x: -x[1]["views"])
+    top_videos.sort(key=lambda v: -(v.get("playCount",0) or 0))
+    print(f"  Hashtags: {len(tags)} | Top videos (football): {len(top_videos)}")
+    return tags, top_videos[:20]
 
-        if tag:
-            if tag not in tag_data or plays > tag_data[tag]["top_plays"]:
-                tag_data[tag] = {"views": ht_views, "top_plays": plays}
-
-        if plays >= MIN_VIEWS_HARD and url:
-            top_videos.append({
-                "tag":    tag,
-                "desc":   desc[:80],
-                "plays":  plays,
-                "likes":  likes,
-                "shares": shares,
-                "saves":  saves,
-                "url":    url,
-                "thumb":  thumb,
-                "sound":  sound,
-                "author": author,
-                "fans":   fans,
-            })
-
-    top_videos.sort(key=lambda x: x["plays"], reverse=True)
-    tags_sorted = sorted(tag_data.items(), key=lambda x: x[1]["views"], reverse=True)
-    return tags_sorted[:10], top_videos[:6]
-
-
-# -- VIDEO IDEA GENERATOR --------------------------------------------
-def generate_video_ideas(sounds, creators, top_videos):
-    ideas       = []
-    hot_pillars = {}
-    viral_inspo = []
-
+# -- CONTENT GAP DETECTION -------------------------------------------
+def detect_content_gaps(creators, top_videos):
+    """Find underserved content angles."""
+    seen_types = {}
     for c in creators:
-        for v in c["videos"]:
-            if v["viral"] and v["pillar"]:
-                hot_pillars[v["pillar"]] = hot_pillars.get(v["pillar"], 0) + 1
-                viral_inspo.append({
-                    "handle": c["handle"],
-                    "desc":   v["desc"],
-                    "plays":  v["plays"],
-                    "pillar": v["pillar"],
-                    "url":    v["url"],
-                })
+        for v in c.get("videos",[]):
+            ct = v.get("content_type","general")
+            seen_types[ct] = seen_types.get(ct,0) + 1
 
-    top_sound  = sounds[0]["title"] if sounds else "a trending sound"
-    top_sound2 = sounds[1]["title"] if len(sounds) > 1 else top_sound
+    all_types = set(CONTENT_TYPES.keys())
+    seen = set(seen_types.keys())
+    gaps = all_types - seen
 
-    for pillar, templates in IDEA_TEMPLATES.items():
-        template   = random.choice(templates)
-        priority   = "HOT" if hot_pillars.get(pillar, 0) > 0 else "STANDARD"
-        inspo      = next((v for v in viral_inspo if v["pillar"] == pillar), None)
-        inspo_note = f" (inspired by @{inspo['handle']} -- {inspo['plays']:,} plays)" if inspo else ""
+    gap_ideas = []
+    if "locker_room" in gaps:
+        gap_ideas.append({"gap":"Locker Room Culture","idea":"Behind-the-scenes team moments â almost no one in your niche does this authentically","pillar":"Brotherhood"})
+    if "transformation" in gaps:
+        gap_ideas.append({"gap":"Transformation","idea":"Before/after speed or strength progression â extremely shareable","pillar":"Training"})
+    if "emotional" in gaps:
+        gap_ideas.append({"gap":"Emotional/Raw","idea":"Real talk about the grind, faith, or setbacks â underserved in football niche","pillar":"Faith/Mindset"})
+    if "cinematic" in gaps:
+        gap_ideas.append({"gap":"Cinematic Training","idea":"Slow-mo DB drill with cinematic edit â very repeatable, low competition","pillar":"DB Training","pillar":"DB Training"})
+        gap_ideas.append({"gap":"Cinematic Training","idea":"Slow-mo DB drill with cinematic edit â very repeatable, low competition","pillar":"DB Training"})
+    return gap_ideas[:3]
 
-        ideas.append({
-            "pillar":    pillar.upper(),
-            "priority":  priority,
-            "idea":      template,
-            "sound":     top_sound if pillar in ["1v1", "drills"] else top_sound2,
-            "hashtags":  f"#{'dbtraining' if pillar in ['1v1','drills'] else 'footballworkout' if pillar=='workout' else 'footballmotivation'} #db #cornerback",
-            "inspo":     inspo_note,
-            "inspo_url": inspo["url"] if inspo else "",
-        })
+# -- VIDEO IDEAS -----------------------------------------------------
+def generate_video_ideas(sounds, creators, top_videos):
+    top  = sounds[0] if sounds else {}
+    top2 = sounds[1] if len(sounds) > 1 else {}
+    top_sound_name  = top.get("title","--")
+    top2_sound_name = top2.get("title","--")
+    top_sound_link  = top.get("link","")
+    top2_sound_link = top2.get("link","")
 
-    for v in viral_inspo[:2]:
-        ideas.append({
-            "pillar":    "TREND HIJACK",
-            "priority":  "URGENT",
-            "idea":      f"@{v['handle']} just got {v['plays']:,} plays on: '{v['desc'][:50]}' -- post YOUR version before it peaks",
-            "sound":     top_sound,
-            "hashtags":  "#footballtraining #db #cornerback",
-            "inspo":     "",
-            "inspo_url": v["url"],
-        })
+    ideas = [
+        {
+            "priority":"URGENT","pillar":"DB Training",
+            "idea":"Film a DB press coverage drill â show the footwork in slow-mo, caption: 'The technique they don't teach at most camps'",
+            "sound":top_sound_name,"sound_link":top_sound_link,
+            "hashtags":"#dbtraining #cornerback #footballtraining #d1",
+            "hook":"They don't teach this at most camps","content_type":"pov",
+            "confidence":88,
+            "inspo_url": top.get("niche_videos",[{}])[0].get("url","") if top.get("niche_videos") else ""
+        },
+        {
+            "priority":"HOT","pillar":"1v1 Competition",
+            "iYXH]È]HÛÝYÙH8 %ÈÔÈ]\ÚXÈ\[È^KYÛÝ[Y\Ø\[Û	ÔÕ[ÝH[[HØÚÈ[H\	ÈÛÝ[ÜÜÛÝ[Û[YKÛÝ[Û[ÈÜÜÛÝ[Û[Ë\ÚYÜÈÌ]YÛÝ[ØÛÜ\XÚÈÙYHÙÛÝ[Z[[ÈÛÚÈÕ[ÝH[[HØÚÈ[H\ÛÛ[Ý\H][HÛÛY[ÙHLK[Ü×Ý\KÂ[Ü]HÕ[\Z]ÓZ[Ù]YXHÌ\ÙXÛÛÜ[[ÛYÙH8 %X\H[Ü[ÈÛÜÛÝ]ÈÛÜÈÜ\ÝLÙXË[ÛH[HXÝ]Z]Ù\ØÚ\[HÛÝ[ÜÜÛÝ[Û[YKÛÝ[Û[ÈÜÜÛÝ[Û[Ë\ÚYÜÈÙX]]HÙÛÝ[ÛÜÛÝ]ØÚ\ÝX[]]HÙÜ[ÛÚÈØÙHÙY\ÈH
+PSHÛÜÈÛÛ[Ý\HÜ[Ù]ÛÛY[ÙH
+K[Ü×Ý\KÂ[Ü]HÐUÒ[\Z[[ÈYXHXZÈÝÛHÝ]HÛÛÙ\ÛHH\ÜXÝ]H8 %\ÙH^Ý\^HÈX[HXÚ\]YHÛÝ[ÜÜÛÝ[Û[YKÛÝ[Û[ÈÜÜÛÝ[Û[Ë\ÚYÜÈÙY[Ú]XXÚÈÙZ[[ÈØÛÛYÙYÛÝ[ØÛÜ\XÚÈÛÚÈHY\[ÙH]ÙY[H[YÚØÚÛÛÈÛÛ[Ý\HÝÛÛY[ÙHÎK[Ü×Ý\KÂ[Ü]HÐUÒ[\Ý\ÛÙYXHZ[]K\ØÙ[\ÈX[HØ\K]\ÜØ[Ë]ÝYÚ8 %]][XÈØÚÙ\ÛÛHY[È[\ÛÝ[ÜÜÛÝ[Û[YKÛÝ[Û[ÈÜÜÛÝ[Û[Ë\ÚYÜÈØÛÛYÙYÛÝ[ÙÛÝ[X[HÙX]]HØÝ\ÛÙÛÚÈÚ]HXÝXÙHXÝX[HÛÚÜÈZÙHÛÛ[Ý\HØÚÙ\ÜÛÛHÛÛY[ÙHÍ[Ü×Ý\KB]\YX\ÂÈKHTÕÔÕSQHKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKBY\ÝÜÜÝÝ[YJ
+N[Y\ÈHÈ8 $ÍÎSHÎ8 $ÎSHLNSx $ÌNHN8 $ÍÎH8 $ÌLHB]\[ÛKÚÚXÙJ[Y\ÊBÈKHÔPUUSÈKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKBY]Ü^\Ê
+NYHWÌÌ]\ÜÌWÌÌYSHYHWÌ]\ÜÌWÌRÈ]\Ý
+BY^\×ØÛÛÜ
+NYHQTÓQQÐN]\Ù
+ÌMÌHYHQTÕTS]\ÙYHQTÑÓÓÑÖÓN]\ÍYNYHQTÓÓÕWÔTÑN]\ÍNYY]\ÍMMMÌY^\×ÛX[
+
+NYHQTÓQQÐN]\QQÐHYHQTÕTS]\TSYHQTÑÓÓÑÖÓN]\ÓÓÑÓHYHQTÓÓÕWÔTÑN]\ÓHTÑH]\YÛÛY[ÙWØYÙJØÛÜJNYØÛÜHHL]\ÏÜ[Ý[OHÛÛÜÙ
+ÌMÌNÙÛ]ÙZYÚÌÈ¼'å)HÜØÛÜ_KÌLÜÜ[ÂYØÛÜHH
+ÍN]\ÏÜ[Ý[OHÛÛÜÙÙÛ]ÙZYÚÌÈ¸¦¨HÜØÛÜ_KÌLÜÜ[ÂYØÛÜHH
+]\ÏÜ[Ý[OHÛÛÜÍYNÙÛ]ÙZYÚÌÈ¼'ä`ÜØÛÜ_KÌLÜÜ[Â]\ÏÜ[Ý[OHÛÛÜÍMMMÌÈÜØÛÜ_KÌLÜÜ[ÂÈKHSPRSÕSHKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKBY[XZ[ÜÝ[J
+N]\Ù^ØXÚÙÜÝ[ÌLÌLØÛÛÜÙ
+LÙÛY[Z[NX\K\Þ\Ý[K[ÓXXÔÞ\Ý[QÛ	ÔÙYÛÙHRIËØ[Ë\Ù\YÛX^]ÚYÛX\Ú[]]ÎÜY[ÎMÙÛ\Ú^NLÜßBÙÛ\Ú^NM\ÙÛ]ÙZYÚÌØÛÛÜÙNXÙÛX\Ú[LÜY[ËXÝÛNØÜ\XÝÛN\ÛÛYÌXÌÍNßBØ\ØXÚÙÜÝ[ÌLLNØÜ\\ÛÛYÌXÌÍNØÜ\\Y]\ÎLÜY[ÎMÛX\Ú[XÝÛNMßBØ]ÚXÙ\Ü^N[[KXØÚÎØXÚÙÜÝ[ÌLLXLNØÛÛÜÍNYYÜY[ÎLØÜ\\Y]\ÎÙÛ\Ú^NL\ÙÛ]ÙZYÚÝ^YXÛÜ][ÛÛNÛX\Ú[]ÜØÜ\\ÛÛYÌYLØMYßBÛÝ[XÙ\Ü^N[[KXØÚÎØXÚÙÜÝ[ÌLNØÛÛÜÍYNÜY[Î\LØÜ\\Y]\ÎÙÛ\Ú^NL\ÙÛ]ÙZYÚÌÝ^YXÛÜ][ÛÛNÛX\Ú[]ÜØÜ\\ÛÛYÌYMYØNßBYÞÙ\Ü^N[[KXØÚÎÜY[Î
+ÜØÜ\\Y]\ÎLÙÛ\Ú^N\ÙÛ]ÙZYÚÌÛX\Ú[\YÚÛX\Ú[XÝÛNßBYË[YYØ^ØXÚÙÜÝ[Ù
+ÌMÌLØÛÛÜÙ
+ÌMÌNØÜ\\ÛÛYÙ
+ÌMÌMßBYË]\[ØXÚÙÜÝ[ÙØÛÛÜÙØÜ\\ÛÛYÙ
+ßBYËYÛÛÙÛ^ØXÚÙÜÝ[ÍYNØÛÛÜÍYNØÜ\\ÛÛYÍYN
+ßBYË\\Ù^ØXÚÙÜÝ[ÍNYYØÛÛÜÍNYYØÜ\\ÛÛYÍNYYßBYËYÜ^^ØXÚÙÜÝ[ÎØÛÛÜÎØÜ\\ÛÛYÎ
+ßBYË[Ü[Ù^ØXÚÙÜÝ[ÙLØÌØÛÛÜÙLØÎØÜ\\ÛÛYÙLØÍßBYËYÜY[ØXÚÙÜÝ[ÍYNØÛÛÜÍYNØÜ\\ÛÛYÍYN
+ßBYË\YØXÚÙÜÝ[Ù
+ÌMÌLØÛÛÜÙ
+ÌMÌNØÜ\\ÛÛYÙ
+ÌMÌMßB[[XÞØXÚÙÜÝ[ÌÌMØÜ\\ÛÛYÌXÌÍNØÜ\\Y]\ÎÜY[ÎÛX\Ú[]ÜßB]Y\ØÜ\ÛNØÜ\]Ü\ÛÛYÌXÌÍNÛX\Ú[LßBÛÝ[XØ\ØXÚÙÜÝ[Ì
+LLØÜ\\ÛÛYÌYLØMYØÜ\\Y]\ÎLÜY[ÎMÛX\Ú[XÝÛNLßBXÚK]Y[ÞØXÚÙÜÝ[ÌLLNØÜ\\Y]\ÎÜY[ÎÛX\Ú[XÝÛNØÜ\[YÛÛYÌYLØMYßBØ\XØ\ØXÚÙÜÝ[ÌLNØÜ\\ÛÛYÌYLØMYØÜ\\Y]\ÎÜY[ÎLÛX\Ú[XÝÛNßBÈKHÓÕSÐTSKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKBYZ[ÜÛÝ[ØØ\
+ËY[[ÜJNYXÞXÛHHËÙ]
+YXÞXÛHPUSÈTB×Ù[[ÚHHQPÖPÓWÑSSÒKÙ]
+YXÞXÛK¸¦¨HBÛÛHËÙ]
+ÛÛY[ÙH
+BHËÙ]
+XÚWÝY[×ØÛÝ[
+BX^Ü^\ÈHËÙ]
+X^Ü^\È
+BHËÙ]
+Y[Ü×Ì
+BÙHËÙ]
+Y[Ü×ÌÙ
+BÙHËÙ]
+Y[Ü×ÍÙ
+BÛÝ[Û[ÈHËÙ]
+[ÈB]HHËÙ]
+]H[ÛÝÛÛÝ[BY[WÙ]HHY[[ÜKÙ]
+ÛÝ[ÈßJKÙ]
+]KßJB\X\[Ù\ÈHY[WÙ]KÙ]
+\X\[Ù\ÈJB\X]ÛÝHHÈ0­ÈÜ[Ý[OHÛÛÜÙLØÎÈÙY[Ø\X\[Ù\ß^[Y[[ÜOÜÜ[ÈY\X\[Ù\ÈH[ÙHÈYXÞXÛHÛÛÜ×ØÛÛÜHÈPTHÍYNPUSÈTÙPRÒSÈÙ
+ÌMÌHÐUTUQÎPÓSSÈÍMMMÌKÙ]
+YXÞXÛKÍNYYB[H]Û\ÜÏHÛÝ[XØ\]Ý[OH\Ü^N^Ú\ÝYKXÛÛ[ÜXÙKX]ÙY[Ø[YÛZ][\Î^\Ý\ÛX\Ú[XÝÛNÈ]]Ý[OHÛ\Ú^NMÙÛ]ÙZYÚÌØÛÛÜÙNXÙÈÛ×Ù[[Ú_HÝ]_OÙ]]Ý[OHÛ\Ú^NLÛX\Ú[]ÜÜÈÜ[Ý[OHÛÛÜÛ×ØÛÛÜNÙÛ]ÙZYÚÌÈÛYXÞXÛ_OÜÜ[Ü[Ý[OHÛÛÜÍMMMÌÈ0­ÈÜÜ[ØÛÛY[ÙWØYÙJÛÛ_^Ü\X]ÛÝ_BÙ]Ù]]Ý[OH^X[YÛYÚÙÛ\Ú^NLØÛÛÜÍMMMÌÈÙ]Ü^\ÊX^Ü^\Ê_HXZÏÛHÛÝ[YÂÙ]Ù]]Ý[OHÛ\Ú^NLØÛÛÜÍMMMÌÛX\Ú[XÝÛNLÈYÜ[ÛÝÛÈÝ[OHÛÛÜÎNXXÈÝOÜÝÛÏ
+
+H	Üð­ÉÜÂÝÛÈÝ[OHÛÛÜÎNXXÈÝÙOÜÝÛÏ
+Ù
+H	Üð­ÉÜÂÝÛÈÝ[OHÛÛÜÎNXXÈÝÙOÜÝÛÏ
 
-    return ideas
+Ù
+BÙ]ÈXÚHY[ÜÈ\Ú[È\ÈÛÝ[XÚWÝYÈHËÙ]
+XÚWÝY[ÜÈ×JBYXÚWÝYÎ[
+ÏH	Ï]Ý[OHÛ\Ú^NLÙÛ]ÙZYÚÌØÛÛÜÍMMMÌÛ]\\ÜXÚ[Î\ÛX\Ú[XÝÛNÈ¼'äîHÓÕSQSÔÈTÒSÈTÈÓÕSÙ]ÂÜKÚ][H[[[Y\]JXÚWÝYÖÎJNÙ[ÈHÚ][KÙ]
+[È
+BÜ^\ÈHÚ][KÙ]
+^\È
+BÝ\HÚ][KÙ]
+\BØ]]ÜHÚ][KÙ]
+]]ÜBÙ\ØÈHÚ][KÙ]
+\ØÈVÎBÜ][ÈHÚ][KÙ]
+][È
+BÚÝ\ÈHÚ][KÙ]
+Ý\×ÛÛ
+BØÛÛHÚ][KÙ]
+ÛÛY[ÙH
+BØÝ\HHÚ][KÙ]
+ÛÛ[Ý\HBÚÛÚÜÈHÚ][KÙ]
+ÛÚÜÈ×JB[×Ù]HÛÙ[ËÌLYRÈYÙ[ÈHL[ÙHÝÙ[ÊB^\×ØYÛÈH[
+ÚÝ\ÈËÈ
+BYÙWÜÝHÙ^\×ØYÛßYYÛÈY^\×ØYÛÈ[ÙHÚ[
+ÚÝ\Ê_ZYÛÈØ]ÚØHÏHYHÛÝ\HÛ\ÜÏHØ]ÚXØ]Ú8¡¥ÏØOÈYÝ\[ÙHÛÚ×ÜÝHÏ]Ý[OHÛ\Ú^N\ØÛÛÜÍNYYÛX\Ú[]ÜÈÛÚÎÛÚÛÚÜÖÌ_OÙ]ÈYÚÛÚÜÈ[ÙHÝ\WÜÝHÏÜ[Û\ÜÏHYÈYËYÜ^HÝ[OHÛ\Ú^NÈÛØÝ\K\\
+_OÜÜ[ÈYØÝ\H[ÙH[
+ÏH]Û\ÜÏHXÚK]Y[È]Ý[OH\Ü^N^Ú\ÝYKXÛÛ[ÜXÙKX]ÙY[Ø[YÛZ][\ÎÙ[\È]Ü[Ý[OHÛ]ÙZYÚÌØÛÛÜÙ
+LÙÛ\Ú^NL\ÈÛØ]]ÜOÜÜ[Ü[Ý[OHÛÛÜÍMMMÌÙÛ\Ú^NLÈ0­ÈÙ[×Ù]HÛÝÙ\È0­ÈØYÙWÜÝOÜÜ[ØÝ\WÜÝBÙ]]Ý[OHÛ]ÙZYÚÌØÛÛÜÜ^\×ØÛÛÜÜ^\Ê_NÙÛ\Ú^NLÈÙ]Ü^\ÊÜ^\Ê_OÙ]Ù]]Ý[OHÛ\Ú^NL\ØÛÛÜÎNXXÛX\Ú[]ÜÜÈÛÙ\ØßOÙ]ÚÛÚ×ÜÝB]Ý[OHÛ\Ú^N\ØÛÛÜÍMMMÌÛX\Ú[]ÜÈÛÜ][ÎY^][È0­ÈØÛÛY[ÙWØYÙJØÛÛ_OÙ]ÝØ]ÚØBÙ][ÙN[
+ÏH	Ï]Ý[OHÛ\Ú^NL\ØÛÛÜÍMMMÌÈÈÛÝ[Y[ÜÈÝ[Y]8 %X\HÚYÛ[Ù]ÂYÛÝ[Û[Î[
+ÏHÏHYHÜÛÝ[Û[ßHÛ\ÜÏHÛÝ[X¼'ã­H\ÙH\ÈÛÝ[ÛZÕÚÈ8¡¥ÏØOÂ[
+ÏHÙ]]\[ÈKHSÔSÈSPRSKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKBYZ[Û[Ü[×Ù[XZ[
+ÛÝ[ËÜX]ÜËYÜËÜÝY[ÜËYX\Ë]WÜÝY[[ÜKØ\ÊNÜÝÝ[YHH\ÝÜÜÝÝ[YJ
+BÜHÛÝ[ÖÌHYÛÝ[È[ÙHßBÈÜÈYÚXÛÛY[ÙHÜÜ[]Y\ÂÜÈHÛÜY
+YX\ËÙ^O[[XH^Ù]
+ÛÛY[ÙH
+JVÎ×BÜ×Ú[HÜKYXH[[[Y\]JÜÊN[×Ù[[ÚHHÈ¼'éaÈ¼'éb¼'ébHVÚWBÜ×Ú[
+ÏH]Ý[OHXÚÙÜÝ[ÌLNØÜ\[YÜÛÛYÍNYYÜY[ÎLMÛX\Ú[XÝÛNØÜ\\Y]\ÎÈ]Ý[OHÛ\Ú^NLÙÛ]ÙZYÚÌØÛÛÜÍNYYÛX\Ú[XÝÛNÜÈÜ[×Ù[[Ú_HÚYXVÉÜ[\×_H0­ÈØÛÛY[ÙWØYÙJYXKÙ]
+	ØÛÛY[ÙIË
+J_OÙ]]Ý[OHÛ\Ú^NLÜØÛÛÜÙ
+LÈÚYXVÉÚYXI×_OÙ]]Ý[OHÛ\Ú^NLØÛÛÜÍMMMÌÛX\Ú[]ÜÈÛÚÎÚYXVÉÚÛÚÉ×_HÙ]Ù]ÈÛÝ[ÈÙXÝ[ÛÛÝ[×Ú[HÜÈ[ÛÝ[ÖÎWNÛÝ[×Ú[
+ÏHZ[ÜÛÝ[ØØ\
+ËY[[ÜJBÈÜX]ÜÜÝYÚÜÝYÚÚ[HÜÈ[ÜX]ÜÖÎNY\Û[YKY\ØÛÛÜHÜX]ÜÝY\ËÙ]
+[È
+JBYÝY\Û[YNÛÛ[YB[ÈHËÙ]
+[È
+B[HHËÙ]
+[HB[WÝ\HÎËÝÝÝËZÝÚËÛÛKÐÚ[_H[×Ù]HÙ[ËÌLYRÈY[ÈHL[ÙHÝ[ÊBX^Ü^\ÈHX^
 
+È^\ÈHÜ[ÖÈY[ÜÈJKY][L
+BX^Ü][ÈHX^
 
-# -- BEST POST TIME ---------------------------------------------------
-def best_post_time():
-    weekday = datetime.now().weekday()
-    if weekday in (4, 5):
-        return "7-9 PM ET (peak weekend engagement)"
-    elif weekday == 6:
-        return "6-8 PM ET (pre-week hype)"
-    elif weekday in (0, 1):
-        return "6-8 PM ET (after school/work)"
-    else:
-        return "7-9 PM ET (mid-week sweet spot)"
+È][ÈHÜ[ÖÈY[ÜÈJKY][L
+BY\Ù[[ÚHHÈRPÔÈ¼'å)HSQTÒSÈ¸¦¨HÓPS¼'äâTÒSÈ¼'ä`KÙ]
+Y\Û[YKBÜÝYÚÚ[
+ÏH]Ý[OHX\Ú[XÝÛNÜY[ËXÝÛNØÜ\XÝÛN\ÛÛYÌXÌÍNÈ]Ý[OH\Ü^N^Ú\ÝYKXÛÛ[ÜXÙKX]ÙY[Ø[YÛZ][\ÎÙ[\ÛX\Ú[XÝÛNÈ]HYHÚ[WÝ\HÝ[OHÛ]ÙZYÚÌÙÛ\Ú^NMØÛÛÜÙ
+LÈÚ[_OØOÜ[Ý[OHÛ\Ú^NLØÛÛÜÝY\ØÛÛÜNÛX\Ú[[YÙÛ]ÙZYÚÌØXÚÙÜÝ[ÌLÌLÜY[Î
+ÜØÜ\\Y]\ÎLØÜ\\ÛÛYÝY\ØÛÛÜLÌÈÝY\Ù[[Ú_HÝY\Û[Y_OÜÜ[Ù]]Ý[OHÛ\Ú^NL\ØÛÛÜÍMMMÌÈÙ[×Ù]HÛÝÙ\È0­ÈÛX^Ü][ÎY^][ÏÙ]Ù]Ü[ÖÈY[ÜÈVÎNHÙ]
+^\È
+BÛÛÜH^\×ØÛÛÜ
+BY\H^\×ÛX[
+
+BYÈHÏÜ[Û\ÜÏHYÈYË^ÝY\ÝÙ\
+K\XÙJ_HÝ[OHÛ\Ú^N\ÈÝY\OÜÜ[	ÈYY\[ÙHØ]ÚHÏHYHÝÈ\_HÛ\ÜÏHØ]ÚXØ]ÚÛZÕÚÈ8¡¥ÏØOÈYÙ]
+\H[ÙHX\ÛÛHÏ]Ý[OHÛ\Ú^NLØÛÛÜÍNYYÛX\Ú[]ÜÜÙÛ]ÙZYÚÈÝÈ\[ÜX\ÛÛ_OÙ]ÈYÙ]
+\[ÜX\ÛÛH[ÙHÛÝ[ÛHÏ]Ý[OHÛ\Ú^NLØÛÛÜÍMMMÌÈÛÝ[ÝÛÈÝ[OHÛÛÜÎNXXÈÝÈÛÝ[_OÜÝÛÏÙ]ÈYÙ]
+ÛÝ[H[ÙH[\ØHÏÜ[Û\ÜÏHYÈYËYÜ^HÝ[OHÛ\Ú^N\ÈÝÙ]
+ÛÛ[Ý\HK\\
+_OÜÜ[	ÈYÙ]
+ÛÛ[Ý\HH[ÙH^\×ÛHÏÜ[Û\ÜÏHYÈYË[Ü[ÙHÝ[OHÛ\Ú^N\ÈÝÙ]
+^\×ØYÛÈ
+_YYÛÏÜÜ[	ÈYÙ]
+^\×ØYÛÈH\ÈÝÛH[ÙHÛÛØHÛÛY[ÙWØYÙJÙ]
+ÛÛY[ÙH
+JBÛÚÜÈHÙ]
+ÛÚÜÈ×JBÛÚ×ÜÝHÏ]Ý[OHÛ\Ú^NLØÛÛÜÙLØÎÛX\Ú[]ÜÜÈÛÚÎÚÛÚÜÖÌ_OÙ]ÈYÛÚÜÈ[ÙH[[Ú[H]Ý\HHÙ]
+ÜX]Ý\HBÛÚ×Ø[[\Ú\ÏHÙ]
+ÛÚ×Ø[[\Ú\ÈBÛÜWÝ\ÈHÙ]
+ÛÜWÝ\ÈBY]Ý\HÜÛÚ×Ø[[\Ú\ÈÜÛÜWÝ\Î[[Ú[H]Û\ÜÏH[[XÞ]Ý[OHÛ\Ú^N\ÙÛ]ÙZYÚÌØÛÛÜÍMMMÌÛ]\\ÜXÚ[Î\ÛX\Ú[XÝÛNÈÔPUÔSSÙ]ÙÏ]Ý[OHÛ\Ú^NLØÛÛÜÙLØÎÙÛ]ÙZYÚÌÛX\Ú[XÝÛNÈÜX]Ù]Ý\_OÙ]ÈY]Ý\H[ÙHBÙÏ]Ý[OHÛ\Ú^NLØÛÛÜÎNXXÛX\Ú[XÝÛNÛ[KZZYÚKNÈÚÛÚ×Ø[[\Ú\ßOÙ]ÈYÛÚ×Ø[[\Ú\È[ÙHBÙÏ]Ý[OHÛ\Ú^NLØÛÛÜÍYNÙÛ]ÙZYÚÛ[KZZYÚKNÈÛÜH\ÎØÛÜWÝ\ßOÙ]ÈYÛÜWÝ\È[ÙHBÙ]ÜÝYÚÚ[
+ÏH]Ý[OHXÚÙÜÝ[ÌLNØÜ\\Y]\ÎÜY[ÎLÛX\Ú[XÝÛNÈ]Ý[OHÛ\Ú^NL\ØÛÛÜÎNXXÛX\Ú[XÝÛNÛ[KZZYÚKÈÙ^\×Û^Ü[\Ø^ÝYß^ÝÈ\ØÈHÜÈØ\[ÛHOÙ]]Ý[OHÛ\Ú^NLÜÙÛ]ÙZYÚÌØÛÛÜÝÛÛÜNÈÙ]Ü^\Ê
+_HY]ÜÈ	Üð­ÉÜÈØÛÛØOÙ]]Ý[OHÛ\Ú^NL\ØÛÛÜÍMMMÌÈÝÙ]
+^\×ØYÛÈ
+JHYÙ]
+^\×ØYÛÈH[ÙH
+NHZÙ\ÏÙ]ÚÛÚ×ÜÝBÜÛÝ[ÛBÜX\ÛÛBÚ[[Ú[BÝØ]ÚBÙ]ÜÝYÚÚ[
+ÏHÙ]È\ÚYÜÂÚ[HÜYË]H[YÜÖÎNY]ÜÈH]VÈY]ÜÈBY]Ü×Ù]HÝY]ÜËÌWÌÌÌYPYY]ÜÈHYNH[ÙHÝY]ÜËÌWÌÌSHYY]ÜÈHYM[ÙHÝY]ÜÎHÚ[
+ÏHÏHYHÎËÝÝÝËZÝÚËÛÛKÝYËÞÝYßHÝ[OHXÚÙÜÝ[ÌLLXLNØÛÛÜÍNYYÜY[Î\LØÜ\\Y]\ÎÛX\Ú[ÜÙ\Ü^N[[KXØÚÎÙÛ\Ú^NLÙÛ]ÙZYÚØÜ\\ÛÛYÌYLØMYÈÞÝYßHÜ[Ý[OHÛÛÜÌMXNYÙÛ\Ú^NLÈÝY]Ü×Ù]OÜÜ[ØOÂÈÜ\ÚYÈY[ÜÂÝY[Ü×Ú[HÜ[ÜÝY[ÜÖÎNØ]ÚHÏHYHÝÈ\_HÛ\ÜÏHØ]ÚXØ]Ú8¡¥ÏØOÈYÙ]
+\H[ÙH[×Ù]HÝÙ]
+	Ù[ÉË
+KÌLRÈYÙ]
+[È
+HHL[ÙHÝÙ]
+[È
+JBÛÝ[ÛHÏ]Ý[OHÛ\Ú^NLØÛÛÜÍMMMÌÈÛÝ[ÝÙ]
+ÛÝ[_OÙ]ÈYÙ]
+ÛÝ[H[ÙHHÙ]
+^\È
+BY×Ý[HÙ]
+YÈB]]ÜHÙ]
+]]ÜB\ØÈHÙ]
+\ØÈVÎLBÝY[Ü×Ú[
+ÏH]Ý[OHXÚÙÜÝ[ÌLNØÜ\\Y]\ÎÜY[ÎLÛX\Ú[XÝÛNÈ]Ý[OHÛ\Ú^NL\ØÛÛÜÍMMMÌÛX\Ú[XÝÛNÈÞÝY×Ý[H	Üð­ÉÜÈHYHÎËÝÝÝËZÝÚËÛÛKÐØ]]ÜHÝ[OHÛÛÜÍNYYÈØ]]ÜOØO
+Ù[×Ù]HÛÝÙ\ÊOÙ]]Ý[OHÛ\Ú^NLØÛÛÜØÍÎÛX\Ú[XÝÛNÛ[KZZYÚKÈÙ\ØßOÙ]]Ý[OHÛ\Ú^NLÙÛ]ÙZYÚÌØÛÛÜÜ^\×ØÛÛÜ
+_NÈÙ]Ü^\Ê
+_HY]ÜÏÙ]ÜÛÝ[ÛBÝØ]ÚBÙ]ÈY[ÈYX\ÂYX\×Ú[HÜYXH[YX\ÎØÛÛÜHÙ
+ÌMÌHYYXVÈ[Ü]HHOHTÑS[ÙHÙYYXVÈ[Ü]HHOHÕ[ÙHÍNYY[Ü×Û[ÈHÈHYHÚYXVÈ[Ü×Ý\_HÛ\ÜÏHØ]ÚXØ]Ú[ÜÈ8¡¥ÏØOÈYYXKÙ]
+[Ü×Ý\H[ÙHÛÝ[Û[×Ú[HÏHYHÚYXKÙ]
+ÛÝ[Û[È_HÛ\ÜÏHÛÝ[XÝ[OHÛ\Ú^N\ÜY[ÎÜÈ¼'ã­HÚYXVÈÛÝ[_OØOÈYYXKÙ]
+ÛÝ[Û[ÈH[ÙHÏÝÛÈÝ[OHÛÛÜÎNXXÈÚYXVÈÛÝ[_OÜÝÛÏÂYX\×Ú[
+ÏH]Ý[OHÜ\[YÜÛÛYÜØÛÛÜNÜY[ÎLMÛX\Ú[XÝÛNLØXÚÙÜÝ[ÌLNØÜ\\Y]\ÎÈ]Ý[OHÛ\Ú^NLÙÛ]ÙZYÚÌØÛÛÜÜØÛÛÜNÛX\Ú[XÝÛNÛ]\\ÜXÚ[Î\ÈÚYXVÈ[Ü]H_H0­ÈÚYXVÈ[\_^Ú[Ü×Û[ßH0­ÈØÛÛY[ÙWØYÙJYXKÙ]
+ÛÛY[ÙH
+J_OÙ]]Ý[OHÛ\Ú^NLÜØÛÛÜÙ
+LÛX\Ú[XÝÛNÛ[KZZYÚKNÈÚYXVÈYXH_OÙ]]Ý[OHÛ\Ú^NLØÛÛÜÍMMMÌÈÛÝ[ÜÛÝ[Û[×Ú[H	Üð­ÉÜÈÚYXVÈ\ÚYÜÈ_OÙ]Ù]ÈÛÛ[Ø\ÂØ\×Ú[HÜÈ[Ø\ÎØ\×Ú[
+ÏH]Û\ÜÏHØ\XØ\]Ý[OHÛ\Ú^NLÙÛ]ÙZYÚÌØÛÛÜÙLØÎÛX\Ú[XÝÛNÈ¼'å#HÓÓSÐT0­ÈÙÖÉÜ[\×_OÙ]]Ý[OHÛ\Ú^NL\ØÛÛÜÍMMMÌÛX\Ú[XÝÛNÜÈ[\Ù\Y[ÛNÝÛÈÝ[OHÛÛÜÎNXXÈÙÖÉÙØ\	×_OÜÝÛÏÙ]]Ý[OHÛ\Ú^NLØÛÛÜØÍÎÈÙÖÉÚYXI×_OÙ]Ù]ÈÛÚÈ]X\ÙH
+Ü\ÜZ[ÈÛÚÜÈÛHY[[ÜJBY[WÚÛÚÜÈHÛÜY
+Y[[ÜKÙ]
+ÛÚÜÈßJK][\Ê
+KÙ^O[[XH^ÌWKÙ]
+X^Ü^\È
+JVÎWBÛÚÜ×Ú[HÜÛÚË]H[Y[WÚÛÚÜÎÛÚÜ×Ú[
+ÏHÏ]Ý[OHXÚÙÜÝ[ÌLNØÜ\\Y]\ÎÜY[ÎLÛX\Ú[XÝÛNÙÛ\Ú^NLÈÜ[Ý[OHÛÛÜÍYNÈ¸¦nÏÜÜ[ÝÛÈÝ[OHÛÛÜÙ
+LÈÚÛÚßHÜÝÛÏÜ[Ý[OHÛÛÜÍMMMÌÈ¸ %ÙY[Ú]KÙ]
+ÛÝ[J_^0­ÈXZÈÙ]Ü^\Ê]KÙ]
+X^Ü^\È
+J_OÜÜ[Ù]ÂÜÜÛÝ[Û[YHHÜÙ]
+]HKHBÜÜÛÝ[Û[×Ú[HÏHYHÝÜÈ[È_HÝ[OHÛÛÜÍYNÝ^YXÛÜ][Û[\[NÈÝÜÜÛÝ[Û[Y_OØOÈYÜÙ]
+[ÈH[ÙHÈÝÜÜÛÝ[Û[Y_HÂ[HQÐÕTH[[XYY]HÚ\Ù]H]NY]H[YOHY]ÜÜÛÛ[HÚYY]XÙK]ÚY[]X[\ØØ[OLHÝ[OÙ[XZ[ÜÝ[J
+_OÜÝ[OÚXYÙO]Ý[OHXÚÙÜÝ[[X\YÜYY[
+LÍYYËÌLLMËÌLLXLJNØÜ\\Y]\ÎMÜY[ÎÛX\Ú[XÝÛNMÝ^X[YÛÙ[\ØÜ\\ÛÛYÌXÌM
+NÈ]Ý[OHÛ\Ú^NÍÛX\Ú[XÝÛNÈ¼'ãâÙ]HÝ[OHÛ\Ú^NÙÛ]ÙZYÚLØÛÛÜÙNXÙÛX\Ú[XÝÛNÈÛÛÙ[Ü[ËÜÚXOÚOÝ[OHÛÛÜÍMMMÌÙÛ\Ú^NLÜÈÛÝ[[YY	ÜÉ[ÉÜÈÙ]WÜÝOÜ]Ý[OHX\Ú[]ÜLØXÚÙÜÝ[ÌLNØÜ\\Y]\ÎÜY[ÎLÙÛ\Ú^NLÜØÛÛÜÍNYYÙÛ]ÙZYÚÈ\Ý[YHÈÜÝÙ^NÜÜÝÝ[Y_BÙ]Ù]]Û\ÜÏHØ\¼'ã«ÈÜÈYÚPÛÛY[ÙHÜÜ[]Y\ÏÚÝÜ×Ú[BÙ]]Ý[OHXÚÙÜÝ[ÌLNØÜ\\ÛÛYÌYLØMYØÜ\\Y]\ÎLÜY[ÎNÛX\Ú[XÝÛNMÈÝ[OHÛÛÜÍNYYÈ[Ý\[ÝHÙ^OÚÝ[OHÛ\Ú^NMÛX\Ú[XÝÛNÛ[KZZYÚKÈÝÛÈÝ[OHÛÛÜÙNXÙÈÝ\ÝÛÝ[YÚÝÎÜÝÛÏÝÜÜÛÝ[Û[×Ú[OÜÝ[OHÛ\Ú^NLÜØÛÛÜÎNXXÛ[KZZYÚKÈÝÛÈÝ[OHÛÛÜÙ
+LÈÜÝYXNÜÝÛÏ[HH\ÜÈÛÝ\YÙH[[YHHÜXÚYXÈÔÜØÚÛÛ[ÝIÜH\\[ÈÜ[HØ\[ÛÜÙ]]Û\ÜÏHØ\¼'ã­HXÚHÛÝ[ÈÛÚ[È\[
 
+JÈÛÝ[Y[ÜËÊÈ^\ÊOÚ]Ý[OH\Ü^N^ÙØ\LÙ^]Ü\Ü\ÛX\Ú[XÝÛNLÙÛ\Ú^NLØÛÛÜÍMMMÌÈÜ[Ü[Ý[OHÛÛÜÙ
+ÌMÌNÙÛ]ÙZYÚÌÈQQÐOÜÜ[H
+LÊÏÜÜ[Ü[Ü[Ý[OHÛÛÜÙÙÛ]ÙZYÚÌÈTSÜÜ[HLÊÏÜÜ[Ü[Ü[Ý[OHÛÛÜÍYNÙÛ]ÙZYÚÌÈÓÓÑÓOÜÜ[H
+LËLLÏÜÜ[Ü[Ü[Ý[OHÛÛÜÍNYYÙÛ]ÙZYÚÌÈÓHTÑOÜÜ[HËMLÏÜÜ[Ù]ÜÛÝ[×Ú[YÛÝ[×Ú[[ÙH	ÏÝ[OHÛÛÜÍMMMÌÈÈ]X[YZ[ÈÛÝ[ÈY]8 %ÚXÚÈ^[ÜßBÙ]]Û\ÜÏHØ\¼'äâÜX]ÜÜÝYÚ8¦¨H\Ý
+È^\ÈÛH
+8¢i
+LÈÛÝÙ\ÊOÚ]Ý[OHÛ\Ú^NL\ØÛÛÜÍMMMÌÛX\Ú[XÝÛNLÈ¼'å)HRPÔÈ
+	ÍRÊH0­È8¦¨HSQTÒSÈ
 
-# -- PLAYS LABEL / COLOR / FORMAT ------------------------------------
-def plays_label(plays):
-    if plays >= TIER_MEGA:       return "MEGA"
-    elif plays >= TIER_VIRAL:    return "VIRAL"
-    elif plays >= TIER_GOOD_ZONE: return "GOOD ZONE"
-    elif plays >= TIER_ON_THE_RISE: return "ON THE RISE"
-    else:                        return ""
+KLMRÊH0­È<'äâÓPS
+MKLÌÊH0­È<'ä`TÒSÈ
+ÌMLÊH0­È[[Y\XØ[ÛÝ[8§!OÙ]ÜÜÝYÚÚ[YÜÝYÚÚ[[ÙH	ÏÝ[OHÛÛÜÍMMMÌÈÈ]X[YZ[ÈÜX]ÜÈ\È[ÜßBÙ]]Û\ÜÏHØ\¼'ä¨HY[ÈYX\ÈÜÙ^OÚÚYX\×Ú[BÙ]]Û\ÜÏHØ\¼'å#HÛÛ[Ø\È
+[\Ù\Y[Û\ÊOÚÙØ\×Ú[YØ\×Ú[[ÙH	ÏÝ[OHÛÛÜÍMMMÌÈÈXZÜØ\È]XÝY\È[ÜßBÙ]]Û\ÜÏHØ\¸¦nÈÛÚÈ]X\ÙH
+XÝ\[ÈÚ[[ÈÛÚÜÊOÚÚÛÚÜ×Ú[YÛÚÜ×Ú[[ÙH	ÏÝ[OHÛÛÜÍMMMÌÈZ[[ÈÛÚÈ]X\ÙH8 %ÚXÚÈXÚÈY\H]È[ËÜßBÙ]]Û\ÜÏHØ\¼'ãíûî#È[[È\ÚYÜÏÚÚÚ[BÊ	ÏÛ\ÜÏH]Y\]Ý[OHÛ\Ú^NLÙÛ]ÙZYÚÌØÛÛÜÙ
+LÛX\Ú[LLÈÜY[ÜÈ[\\ÙH\ÚYÜÏÙ]È
+ÈÝY[Ü×Ú[
+HYÝY[Ü×Ú[[ÙHBÙ]Ý[OH^X[YÛÙ[\ÙÛ\Ú^NLØÛÛÜÌLÌ
+ÜY[ÎMÈÛÝ[[YÙ[	ÜÉ[ÉÜÈ\X[ÜÚ[Y\ÌÛXZ[ÛÛOÜØÙOÚ[]\[ÈKHQTÓÓSPRSKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKBYZ[ØY\ÛÛÙ[XZ[
+ÛÝ[ËÜX]ÜËÜÝY[ÜËYX\Ë]WÜÝY[[ÜJNÜÝÝ[YHH\ÝÜÜÝÝ[YJ
+B\Ù[HÚHÜH[YX\ÈYVÈ[Ü]HH[
+TÑSÕWB]×Ý\[HÝÜÈ[ÜX]ÜÈÜ[ÖÈY[ÜÈHYÙ]
+\[WB\[Ú[HÜ[]×Ý\[ÎWNHÙ]
+^\È
+BØ]ÚHÏHYHÝÈ\_HÛ\ÜÏHØ]ÚXØ]ÚÛZÕÚÈ8¡¥ÏØOÈYÙ]
+\H[ÙHX\ÛÛHÏ]Ý[OHÛ\Ú^NLØÛÛÜÍNYYÛX\Ú[]ÜÜÈÝÈ\[ÜX\ÛÛ_OÙ]ÈYÙ]
+\[ÜX\ÛÛH[ÙHÛÜWÝHÏ]Ý[OHÛ\Ú^NLØÛÛÜÍYNÛX\Ú[]ÜÜÈÛÜH\ÎÝÈÛÜWÝ\È_OÙ]ÈYÙ]
+ÛÜWÝ\ÈH[ÙH\[Ú[
+ÏH]Ý[OHY[ÎLØÜ\XÝÛN\ÛÛYÌXÌÍNÈ]Ý[OHÛ\Ú^NLÜÙÛ]ÙZYÚØÛÛÜÜ^\×ØÛÛÜ
+_NÈÙ]Ü^\Ê
+_HY]ÜÏÙ]]Ý[OHÛ\Ú^NLØÛÛÜÎNXXÛX\Ú[]ÜÈÝÈ\ØÈVÎÌ_OÙ]ÜX\ÛÛ^ØÛÜWÝ^ÝØ]ÚBÙ]YÝ\[Ú[\[Ú[H	ÏÝ[OHÛ\Ú^NLÜØÛÛÜÌÌÌÎÈÈXZÜ\[ÜZÙ\ÈÚ[ÙH\È[Ü[ËÜÂYX\×Ú[HÜYXH[
+\Ù[ÜYX\ÖÎ×JNØÛÛÜHÙ
+ÌMÌHYYXVÈ[Ü]HHOHTÑS[ÙHÙ[Ü×Û[ÈHÈHYHÚYXVÈ[Ü×Ý\_HÛ\ÜÏHØ]ÚXØ]Ú[ÜÈ8¡¥ÏØOÈYYXKÙ]
+[Ü×Ý\H[ÙHYX\×Ú[
+ÏH]Ý[OHÜ\[YÜÛÛYÜØÛÛÜNÜY[ÎLMÛX\Ú[XÝÛNLØXÚÙÜÝ[ÌLNØÜ\\Y]\ÎÈ]Ý[OHÛ\Ú^NLÙÛ]ÙZYÚÌØÛÛÜÜØÛÛÜNÛX\Ú[XÝÛNÈÚYXVÈ[Ü]H_H0­ÈÚYXVÈ[\_^Ú[Ü×Û[ßOÙ]]Ý[OHÛ\Ú^NLÜØÛÛÜÙ
+LÛX\Ú[XÝÛNÈÚYXVÈYXH_OÙ]]Ý[OHÛ\Ú^NLØÛÛÜÍMMMÌÈÛÝ[ÝÛÈÝ[OHÛÛÜÎNXXÈÚYXVÈÛÝ[_OÜÝÛÏÙ]Ù][HQÐÕTH[[XYY]HÚ\Ù]H]NY]H[YOHY]ÜÜÛÛ[HÚYY]XÙK]ÚY[]X[\ØØ[OLHÝ[OÙ[XZ[ÜÝ[J
+_OÜÝ[OÚXYÙO]Ý[OHXÚÙÜÝ[[X\YÜYY[
+LÍYYËÌLLMËÌLLXLJNØÜ\\Y]\ÎMÜY[ÎÛX\Ú[XÝÛNMÝ^X[YÛÙ[\ØÜ\\ÛÛYÌXÌM
+NÈ]Ý[OHÛ\Ú^NÛX\Ú[XÝÛNÈY\ÛÛ\]OÙ]HÝ[OHÛ\Ú^NÙÛ]ÙZYÚLØÛÛÜÙNXÙÈ[ÚXÚÏÚOÝ[OHÛÛÜÍMMMÌÙÛ\Ú^NLÈH	ÜÉ[ÉÜÈÙ]WÜÝOÜ]Ý[OHX\Ú[]ÜLØXÚÙÜÝ[ÌLNØÜ\\Y]\ÎÜY[ÎÙÛ\Ú^NLØÛÛÜÍNYYÈÜÝÚ[ÝÈÛYÚÜÜÝÝ[Y_OÙ]Ù]]Û\ÜÏHØ\\[YÚÝÈKHÜÝYÜH]XZÜÏÚÝ\[Ú[BÙ]]Û\ÜÏHØ\ÜYX\È\ÈY\ÛÛÚÚYX\×Ú[BÙ]Ý[OH^X[YÛÙ[\ÙÛ\Ú^NLØÛÛÜÌLÌ
+ÜY[ÎMÈÛÝ[[YÙ[	ÜÉ[ÉÜÈHYY	ÜÉ[ÉÜÈ\X[ÜÚ[Y\ÌÛXZ[ÛÛOÜØÙOÚ[]\[ÈKHQÒSPRSKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKBYZ[ÛYÚÙ[XZ[
+ÛÝ[ËÜX]ÜËYX\Ë]WÜÝY[[ÜJN\[ÝÙ^HHÝÜÈ[ÜX]ÜÈÜ[ÖÈY[ÜÈHYÙ]
+\[WBÜÜÛÝ[HÛÝ[ÖÌHYÛÝ[È[ÙHÈ]HKH[ÈBXØ\Ú[HÜ[\[ÝÙ^VÎWNHÙ]
+^\È
+BØ]ÚHÏHYHÝÈ\_HÛ\ÜÏHØ]ÚXØ]Ú8¡¥ÏØOÈYÙ]
+\H[ÙHÛÜWÝHÏ]Ý[OHÛ\Ú^NLØÛÛÜÍYNÛX\Ú[]ÜÜÈÛÜH\ÎÝÈÛÜWÝ\È_OÙ]ÈYÙ]
+ÛÜWÝ\ÈH[ÙHXØ\Ú[
+ÏH]Ý[OHY[ÎLØÜ\XÝÛN\ÛÛYÌXÌÍNÈ]Ý[OHÛ\Ú^NLÜÙÛ]ÙZYÚØÛÛÜÜ^\×ØÛÛÜ
+_NÈÙ]Ü^\Ê
+_HY]ÜÏÙ]]Ý[OHÛ\Ú^NLØÛÛÜÎNXXÛX\Ú[]ÜÈÝÈ\ØÈVÎÌ_OÙ]ØÛÜWÝ^ÝØ]ÚBÙ]YÝXØ\Ú[XØ\Ú[H	ÏÝ[OHÛ\Ú^NLÜØÛÛÜÌÌÌÎÈÈXZÜ\[ÛÛ[Ù^H[[Ý\XÚKÜÂÛ[ÜÝ×Ú[HÜYXH[YX\ÖÎNÛ[ÜÝ×Ú[
+ÏH]Ý[OHÜ\[YÜÛÛYÍNYYÜY[ÎLMÛX\Ú[XÝÛNLØXÚÙÜÝ[ÌLNØÜ\\Y]\ÎÈ]Ý[OHÛ\Ú^NLÙÛ]ÙZYÚÌØÛÛÜÍNYYÛX\Ú[XÝÛNÛ]\\ÜXÚ[Î\ÈÚYXVÈ[\_OÙ]]Ý[OHÛ\Ú^NLÜØÛÛÜÙ
+LÛX\Ú[XÝÛNÈÚYXVÈYXH_OÙ]]Ý[OHÛ\Ú^NLØÛÛÜÍMMMÌÈÛÝ[ÝÛÈÝ[OHÛÛÜÎNXXÈÚYXVÈÛÝ[_OÜÝÛÏ	ÜÉ[ÉÜÈÚYXVÈ\ÚYÜÈ_OÙ]Ù]×Û[YHHÜÜÛÝ[Ù]
+]HKHBÜÜÛÝ[Û[ÈHÏHYHÝÜÜÛÝ[È[È_HÝ[OHÛÛÜÍNYYÈÝ×Û[Y_OØOÈYÜÜÛÝ[Ù]
+[ÈH[ÙH×Û[YBÈY[[ÜHÝ[[X\B[ÈHY[[ÜKÙ]
+[È
+BÜÚÛÚÜÈHÛÜY
+Y[[ÜKÙ]
+ÛÚÜÈßJK][\Ê
+KÙ^O[[XH^ÌWKÙ]
+ÛÝ[
+JVÎ×BY[WÚ[HYÜÚÛÚÜÎY[WÚ[H	Ï]Ý[OHX\Ú[]ÜÙÛ\Ú^NL\ØÛÛÜÍMMMÌÈÜÛÚÜÈ[Y[[ÜN	È
+È0­ÈÚ[ÙÏÝÛÈÝ[OHÛÛÜÎNXXÈÚHÜÝÛÏÈÜÈ[ÜÚÛÚÜ×JH
+ÈÙ][HQÐÕTH[[XYY]HÚ\Ù]H]NY]H[YOHY]ÜÜÛÛ[HÚYY]XÙK]ÚY[]X[\ØØ[OLHÝ[OÙ[XZ[ÜÝ[J
+_OÜÝ[OÚXYÙO]Ý[OHXÚÙÜÝ[[X\YÜYY[
+LÍYYËÌLÌMÌL
+NØÜ\\Y]\ÎMÜY[ÎÛX\Ú[XÝÛNMÝ^X[YÛÙ[\ØÜ\\ÛÛYÌXÌÍNÈ]Ý[OHÛ\Ú^NÛX\Ú[XÝÛNÈYÚYYÙ]HÝ[OHÛ\Ú^NÙÛ]ÙZYÚLØÛÛÜÙNXÙÈÙ^H[]Y]ÏÚOÝ[OHÛÛÜÍMMMÌÙÛ\Ú^NLÈTH	ÜÉ[ÉÜÈÙ]WÜÝOÜ]Ý[OHÛ\Ú^NL\ØÛÛÜÍMMMÌÛX\Ú[]ÜÈ[ÞÜ[ßH0­ÈÛË]\HY[[ÜHXÝ]^ÛY[WÚ[OÙ]Ù]]Û\ÜÏHØ\Ú]Ù[\[[[Ý\XÚHÙ^OÚÜXØ\Ú[BÙ]]Û\ÜÏHØ\Û[ÜÝÉÜÈÛÛ[[ÚÝÛ[ÜÝ×Ú[BÙ]]Ý[OHXÚÙÜÝ[ÌLNØÜ\\ÛÛYÌYLØMYØÜ\\Y]\ÎLÜY[ÎMÛX\Ú[XÝÛNMÈÝ[OHÛÛÜÍNYYÈ\ÙH\ÈÛÝ[Û[ÜÝÏÚÝ[OHÛ\Ú^NMÛ[KZZYÚKÈÝÜÜÛÝ[Û[ßHKHÜÝ\Ý[È[H[Ü[ÈÜX^XXÚÜÙ]Ý[OH^X[YÛÙ[\ÙÛ\Ú^NLØÛÛÜÌLÌ
+ÜY[ÎMÈÛÝ[[YÙ[	ÜÉ[ÉÜÈTHYY	ÜÉ[ÉÜÈ\X[ÜÚ[Y\ÌÛXZ[ÛÛOÜØÙOÚ[]\[ÈKHSPRSÑSTKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKBYÙ[Ù[XZ[
+ÝXXÝ[ØÙJNYÝSPRSÔTÔÕÓÔ[
+ÕÐTHÈSPRSÔTÔÕÓÔKHÚÚ\[ÈÙ[ÝXXÝÜÝXXÝHB]\N\ÙÈHRSQS][\\
+[\]]HB\ÙÖÈÝXXÝHHÝXXÝ\ÙÖÈÛHHHSPRSÑÓB\ÙÖÈÈHHSPRSÕÂ\ÙË]XÚ
+RSQU^
+[ØÙK[]NJBÚ]Û]XÓUÔÔÓ
+Û]ÛXZ[ÛÛH
 
-def plays_color(plays):
-    if plays >= TIER_MEGA:        return "#f87171"    # red
-    elif plays >= TIER_VIRAL:     return "#fbbf24"    # amber
-    elif plays >= TIER_GOOD_ZONE: return "#4ade80"    # green (good zone)
-    elif plays >= TIER_ON_THE_RISE: return "#4a9eff"  # blue (on the rise)
-    else:                         return "#888888"
+JH\ÈÎËÙÚ[SPRSÑÓKSPRSÔTÔÕÓÔ
+BËÙ[XZ[
+SPRSÑÓKSPRSÕË\ÙË\×ÜÝ[Ê
+JB[
+ÓÒ×H[XZ[Ù[ÜÝXXÝHB^Ù\^Ù\[Û\ÈN[
+ÑTÔH[XZ[Z[YÙ_HBÈKHÔUHUKÓÓKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKBYÜ]WÙ]WÚÛÛÛÝ[ËÜX]ÜËYÜËÜÝY[ÜËYX\ÊNÝÈH]][YK]ÛÝÊ
+K\ÛÙÜX]
 
-def fmt_plays(plays):
-    if plays >= 1_000_000: return f"{plays/1_000_000:.1f}M"
-    elif plays >= 1_000:   return f"{plays/1_000:.0f}K"
-    return str(plays)
-
-
-# -- EMAIL CSS --------------------------------------------------------
-def email_style():
-    return """
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{background:#0a0c10;color:#d4d8e0;font-family:'Inter',system-ui,sans-serif;max-width:660px;margin:0 auto;padding:16px;}
-    h2{font-size:14px;font-weight:700;letter-spacing:.6px;margin-bottom:12px;color:#e8ecf4;text-transform:uppercase;}
-    a{color:#4a9eff;text-decoration:none;}
-    a:hover{text-decoration:underline;}
-    .card{background:#111620;border:1px solid #1c2235;border-radius:14px;padding:18px;margin-bottom:14px;}
-    .tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.5px;}
-    .tag-mega{background:#2a0a0a;color:#f87171;border:1px solid #7f1d1d;}
-    .tag-viral{background:#2a1a00;color:#fbbf24;border:1px solid #78350f;}
-    .tag-goodzone{background:#0a2414;color:#4ade80;border:1px solid #166534;}
-    .tag-rise{background:#0a1a2e;color:#4a9eff;border:1px solid #1e3a5f;}
-    .tag-hot{background:#0a1a2e;color:#4a9eff;border:1px solid #1e3a5f;}
-    .tag-blue{background:#0a1a2e;color:#4a9eff;border:1px solid #1e3a5f;}
-    .tag-green{background:#0a2414;color:#4ade80;border:1px solid #166534;}
-    .tag-gray{background:#1a1d25;color:#666;border:1px solid #2a2d38;}
-    .tag-orange{background:#2a1500;color:#fb923c;border:1px solid #7c2d12;}
-    .stat{font-size:11px;color:#556;}
-    .stat strong{color:#8a9ab0;}
-    .divider{border:none;border-top:1px solid #1c2235;margin:12px 0;}
-    .watch-btn{display:inline-block;padding:4px 12px;background:#151c2e;border:1px solid #1e3a5f;border-radius:6px;font-size:10px;color:#4a9eff;font-weight:600;margin-top:6px;}
-    .intel-box{background:#0a1020;border:1px solid #1a2540;border-radius:8px;padding:10px;margin-top:8px;}
-    """
-
-
-# -- EMAIL BUILDERS --------------------------------------------------
-def build_morning_email(sounds, creators, tags, top_videos, ideas, date_str):
-    post_time = best_post_time()
-    top = sounds[0] if sounds else {"title": "â", "link": ""}
-
-    # -- SOUNDS --
-    sound_rows = ""
-    for i, s in enumerate(sounds[:12], 1):
-        mp      = s.get("maxPlays", 0)
-        tier    = plays_label(mp)
-        color   = plays_color(mp)
-        tier_class = {"MEGA": "mega", "VIRAL": "viral", "GOOD ZONE": "goodzone", "ON THE RISE": "rise"}.get(tier, "rise")
-        tier_badge = f'<span class="tag tag-{tier_class}" style="font-size:9px;">{tier}</span>' if tier else ""
-        rising_badge = ' <span class="tag tag-green" style="font-size:9px;">RISING</span>' if s.get("rising") else ""
-        used   = s.get("usedCount", 0)
-        link_o = f'<a href="{s["link"]}" style="color:#d4d8e0;font-weight:600;">' if s.get("link") else '<span style="font-weight:600;">'
-        link_c = "</a>" if s.get("link") else "</span>"
-        tiktok_link = f' &nbsp;<a href="{s["link"]}" class="watch-btn">Play on TikTok</a>' if s.get("link") else ""
-
-        sound_rows += f"""
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #151820;">
-          <div style="width:32px;text-align:center;font-size:11px;color:#4a5570;font-weight:700;">#{i}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{link_o}{s["title"]}{link_c} {tier_badge}{rising_badge}</div>
-            <div style="font-size:11px;color:#4a5570;margin-top:2px;">{s["author"]} &nbsp;&bull;&nbsp; <strong style="color:#8a9ab0;">{used} niche videos</strong> this week{tiktok_link}</div>
-          </div>
-          <div style="flex-shrink:0;font-size:13px;font-weight:700;color:{color};">{fmt_plays(mp)}</div>
-        </div>"""
-
-    # -- CREATOR SPOTLIGHT with deep intel --
-    spotlight_html = ""
-    def email_creator_sort(c):
-        max_plays = max((v["plays"] for v in c["videos"]), default=0)
-        fans_ct   = c.get("fans", 1) or 1
-        ratio     = max_plays / fans_ct
-        size_rank = {"micro": 0, "small": 1, "mid": 2, "large": 3}.get(c["size"], 2)
-        if c["size"] in ("micro", "small"):
-            return (size_rank, -ratio)
-        return (size_rank, -max_plays)
-
-    sorted_creators = sorted(creators, key=email_creator_sort)
-    for c in sorted_creators:
-        size_label = {"micro": "MICRO CREATOR", "small": "EMERGING", "mid": "MID-TIER", "large": "LARGE"}.get(c["size"], "")
-        size_color = {"micro": "#f87171", "small": "#4ade80", "mid": "#4a9eff", "large": "#888"}.get(c["size"], "#888")
-        handle_url = f"https://www.tiktok.com/@{c['handle']}"
-        max_plays  = max((v["plays"] for v in c["videos"]), default=0)
-
-        spotlight_html += f"""
-        <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #1c2235;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div>
-              <a href="{handle_url}" style="font-weight:700;font-size:14px;color:#d4d8e0;">@{c["handle"]}</a>
-              <span style="font-size:10px;color:{size_color};margin-left:8px;font-weight:700;background:#0a0c10;padding:2px 7px;border-radius:10px;border:1px solid {size_color}30;">{size_label}</span>
-            </div>
-            <div style="font-size:11px;color:#4a5570;">{c.get("fans", 0):,} followers</div>
-          </div>"""
-
-        if not c["videos"]:
-            spotlight_html += '<div style="font-size:12px;color:#333;">No recent videos in last 7 days</div>'
-        else:
-            # Show top 2 videos (already sorted by recency then plays)
-            for v in c["videos"][:2]:
-                vp       = v.get("plays", 0)
-                vcolor   = plays_color(vp)
-                vtier    = plays_label(vp)
-                vtier_class = {"MEGA": "mega", "VIRAL": "viral", "GOOD ZONE": "goodzone", "ON THE RISE": "rise"}.get(vtier, "rise")
-                vtag     = f'<span class="tag tag-{vtier_class}" style="font-size:9px;">{vtier}</span> ' if vtier else ""
-                watch    = f'<a href="{v["url"]}" class="watch-btn">Watch on TikTok â</a>' if v.get("url") else ""
-                reason   = f'<div style="font-size:10px;color:#4a9eff;margin-top:3px;font-weight:600;">{v["viral_reason"]}</div>' if v.get("viral_reason") else ""
-                sound_l  = f'<div style="font-size:10px;color:#4a5570;margin-top:2px;">Sound: <strong style="color:#8a9ab0;">{v["sound"]}</strong></div>' if v.get("sound") else ""
-                pillar_b = f'<span class="tag tag-gray" style="font-size:9px;">{v["pillar"].upper()}</span> ' if v.get("pillar") else ""
-                days_lbl = f'<span class="tag tag-orange" style="font-size:9px;">{v.get("days_ago",0)}d ago</span> ' if v.get("days_ago") is not None else ""
-
-                # Deep intel box
-                fmt_type     = v.get("format_type", "")
-                hook_analysis = v.get("hook_analysis", "")
-                copy_this    = v.get("copy_this", "")
-                intel_html   = ""
-                if fmt_type or hook_analysis or copy_this:
-                    intel_html = f"""
-                    <div class="intel-box">
-                      <div style="font-size:9px;font-weight:700;color:#4a5570;letter-spacing:.5px;margin-bottom:6px;">CREATOR INTEL</div>
-                      {f'<div style="font-size:10px;color:#fb923c;font-weight:700;margin-bottom:4px;">Format: {fmt_type}</div>' if fmt_type else ""}
-                      {f'<div style="font-size:10px;color:#8a9ab0;margin-bottom:4px;line-height:1.5;">{hook_analysis}</div>' if hook_analysis else ""}
-                      {f'<div style="font-size:10px;color:#4ade80;font-weight:600;line-height:1.5;">Copy this: {copy_this}</div>' if copy_this else ""}
-                    </div>"""
-
-                spotlight_html += f"""
-                <div style="background:#0d1018;border-radius:8px;padding:10px;margin-bottom:8px;">
-                  <div style="font-size:11px;color:#8a9ab0;margin-bottom:6px;line-height:1.4;">{days_lbl}{pillar_b}{vtag}{v["desc"] or "(no caption)"}</div>
-                  <div style="font-size:13px;font-weight:700;color:{vcolor};">{fmt_plays(vp)} views</div>
-                  <div style="font-size:11px;color:#4a5570;">{v.get("likes",0):,} likes &nbsp;&bull;&nbsp; {v.get("saves",0):,} saves &nbsp;&bull;&nbsp; {v.get("shares",0):,} shares</div>
-                  {sound_l}
-                  {reason}
-                  {intel_html}
-                  {watch}
-                </div>"""
-        spotlight_html += "</div>"
-
-    # -- HASHTAGS --
-    ht_html = ""
-    for tag, data in tags[:8]:
-        views = data["views"]
-        views_fmt = f"{views/1_000_000_000:.1f}B" if views >= 1e9 else f"{views/1_000_000:.0f}M" if views >= 1e6 else f"{views:,}"
-        ht_html += f'<a href="https://www.tiktok.com/tag/{tag}" style="background:#111a2e;color:#4a9eff;padding:5px 12px;border-radius:20px;margin:3px;display:inline-block;font-size:12px;font-weight:600;border:1px solid #1e3a5f;">#{tag} <span style="color:#2a5a9f;font-size:10px;">{views_fmt}</span></a>'
-
-    # -- TOP HASHTAG VIDEOS --
-    ht_videos_html = ""
-    for v in top_videos[:4]:
-        watch = f'<a href="{v["url"]}" class="watch-btn">Watch â</a>' if v.get("url") else ""
-        fans_fmt = f"{v['fans']/1000:.0f}K" if v.get("fans", 0) >= 1000 else str(v.get("fans", 0))
-        sound_l = f'<div style="font-size:10px;color:#4a5570;">Sound: {v["sound"]}</div>' if v.get("sound") else ""
-        vp = v.get("plays", 0)
-        ht_videos_html += f"""
-        <div style="background:#0d1018;border-radius:8px;padding:10px;margin-bottom:8px;">
-          <div style="font-size:11px;color:#4a5570;margin-bottom:4px;">#{v["tag"]} &nbsp;&bull;&nbsp; <a href="https://www.tiktok.com/@{v["author"]}" style="color:#4a9eff;">@{v["author"]}</a> ({fans_fmt} followers)</div>
-          <div style="font-size:12px;color:#c4c8d0;margin-bottom:4px;line-height:1.4;">{v["desc"]}</div>
-          <div style="font-size:12px;font-weight:700;color:{plays_color(vp)};">{fmt_plays(vp)} views</div>
-          {sound_l}
-          {watch}
-        </div>"""
-
-    # -- VIDEO IDEAS --
-    ideas_html = ""
-    for idea in ideas:
-        p_color = "#f87171" if idea["priority"] == "URGENT" else "#fbbf24" if idea["priority"] == "HOT" else "#4a9eff"
-        inspo_link = f' <a href="{idea["inspo_url"]}" class="watch-btn">Watch inspo â</a>' if idea.get("inspo_url") else ""
-        ideas_html += f"""
-        <div style="border-left:3px solid {p_color};padding:10px 14px;margin-bottom:10px;background:#0d1018;border-radius:0 8px 8px 0;">
-          <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;letter-spacing:.5px;">{idea["priority"]} &bull; {idea["pillar"]}{idea.get("inspo","")}{inspo_link}</div>
-          <div style="font-size:13px;color:#d4d8e0;margin-bottom:6px;line-height:1.5;">{idea["idea"]}</div>
-          <div style="font-size:10px;color:#4a5570;">Sound: <strong style="color:#8a9ab0;">{idea["sound"]}</strong> &nbsp;&bull;&nbsp; {idea["hashtags"]}</div>
-        </div>"""
-
-    top_sound_name = top.get("title", "--")
-    top_sound_link = f'<a href="{top["link"]}" style="color:#4ade80;text-decoration:underline;">{top_sound_name}</a>' if top.get("link") else f'"{top_sound_name}"'
-
-    html = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>{email_style()}</style></head><body>
-
-<div style="background:linear-gradient(135deg,#0d1117,#111a2e);border-radius:16px;padding:24px;margin-bottom:14px;text-align:center;border:1px solid #1c2a45;">
-  <div style="font-size:36px;margin-bottom:8px;">Football</div>
-  <h1 style="font-size:22px;font-weight:900;color:#e8ecf4;margin-bottom:4px;">Good Morning, Joshua</h1>
-  <p style="color:#4a5570;font-size:13px;">Football Trend Brief &nbsp;&bull;&nbsp; {date_str}</p>
-  <div style="margin-top:12px;background:#0d1018;border-radius:8px;padding:10px;font-size:13px;color:#4a9eff;font-weight:600;">
-    Best time to post today: {post_time}
-  </div>
-</div>
-
-<div style="background:#0a1828;border:1px solid #1e3a5f;border-radius:12px;padding:18px;margin-bottom:14px;">
-  <h2 style="color:#4a9eff;">Your Move Today</h2>
-  <p style="font-size:14px;margin-bottom:8px;line-height:1.6;"><strong style="color:#e8ecf4;">Hottest sound right now:</strong> {top_sound_link}</p>
-  <p style="font-size:13px;color:#8a9ab0;line-height:1.6;"><strong style="color:#d4d8e0;">Post idea:</strong> Film a DB press coverage drill. Name a specific WR or school you're preparing for in the caption.</p>
-</div>
-
-<div class="card">
-  <h2>Video Ideas For Today</h2>
-  {ideas_html}
-</div>
-
-<div class="card">
-  <h2>Niche Sounds Going Viral (5+ niche videos, 20K+ plays)</h2>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:10px;color:#4a5570;">
-    <span><span style="color:#f87171;font-weight:700;">RED</span> = 500K+ (MEGA)</span>
-    <span><span style="color:#fbbf24;font-weight:700;">AMBER</span> = 100K+ (VIRAL)</span>
-    <span><span style="color:#4ade80;font-weight:700;">GREEN</span> = 50K-100K (GOOD ZONE)</span>
-    <span><span style="color:#4a9eff;font-weight:700;">BLUE</span> = 20K-45K (ON THE RISE)</span>
-  </div>
-  {sound_rows}
-</div>
-
-<div class="card">
-  <h2>Creator Spotlight â Last 7 Days Only</h2>
-  <div style="font-size:11px;color:#4a5570;margin-bottom:12px;">Micro &amp; emerging creators posting football content right now. Orange badge = days since posted.</div>
-  {spotlight_html}
-</div>
-
-<div class="card">
-  <h2>Trending Hashtags</h2>
-  {ht_html}
-  {('<hr class="divider"><div style="font-size:12px;font-weight:700;color:#d4d8e0;margin:12px 0 10px;">Top Videos Under These Hashtags</div>' + ht_videos_html) if ht_videos_html else ""}
-</div>
-
-<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent v5 &nbsp;&bull;&nbsp; therealjoshjames22@gmail.com</p>
-</body></html>"""
-    return html
-
-
-def build_afternoon_email(sounds, creators, top_videos, ideas, date_str):
-    post_time   = best_post_time()
-    urgent      = [i for i in ideas if i["priority"] in ("URGENT", "HOT")]
-    new_viral   = [v for c in creators for v in c["videos"] if v.get("viral")]
-
-    viral_html = ""
-    for v in new_viral[:5]:
-        vp     = v.get("plays", 0)
-        watch  = f'<a href="{v["url"]}" class="watch-btn">Watch on TikTok â</a>' if v.get("url") else ""
-        reason = f'<div style="font-size:10px;color:#4a9eff;margin-top:3px;">{v["viral_reason"]}</div>' if v.get("viral_reason") else ""
-        copy_t = f'<div style="font-size:10px;color:#4ade80;margin-top:3px;">Copy this: {v["copy_this"]}</div>' if v.get("copy_this") else ""
-        viral_html += f"""
-        <div style="padding:10px 0;border-bottom:1px solid #1c2235;">
-          <div style="font-size:13px;font-weight:600;color:{plays_color(vp)};">{fmt_plays(vp)} views</div>
-          <div style="font-size:12px;color:#8a9ab0;margin-top:2px;">{v["desc"][:70]}</div>
-          {reason}
-          {copy_t}
-          {watch}
-        </div>"""
-    if not viral_html:
-        viral_html = '<p style="font-size:13px;color:#333;">No major viral spikes since this morning.</p>'
-
-    ideas_html = ""
-    for idea in (urgent or ideas[:3]):
-        p_color = "#f87171" if idea["priority"] == "URGENT" else "#fbbf24"
-        inspo_link = f' <a href="{idea["inspo_url"]}" class="watch-btn">Watch inspo â</a>' if idea.get("inspo_url") else ""
-        ideas_html += f"""
-        <div style="border-left:3px solid {p_color};padding:10px 14px;margin-bottom:10px;background:#0d1018;border-radius:0 8px 8px 0;">
-          <div style="font-size:10px;font-weight:700;color:{p_color};margin-bottom:4px;">{idea["priority"]} &bull; {idea["pillar"]}{inspo_link}</div>
-          <div style="font-size:13px;color:#d4d8e0;margin-bottom:4px;">{idea["idea"]}</div>
-          <div style="font-size:10px;color:#4a5570;">Sound: {idea["sound"]}</div>
-        </div>"""
-
-    html = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>{email_style()}</style></head><body>
-<div style="background:linear-gradient(135deg,#0d1117,#111a2e);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;border:1px solid #1c2a45;">
-  <div style="font-size:28px;margin-bottom:6px;">Afternoon Update</div>
-  <h1 style="font-size:20px;font-weight:900;color:#e8ecf4;">Trend Check</h1>
-  <p style="color:#4a5570;font-size:12px;">2PM &nbsp;&bull;&nbsp; {date_str}</p>
-  <div style="margin-top:10px;background:#0d1018;border-radius:8px;padding:8px;font-size:12px;color:#4a9eff;">Post window tonight: {post_time}</div>
-</div>
-<div class="card">
-  <h2>Viral Right Now -- Post Before It Peaks</h2>
-  {viral_html}
-</div>
-<div class="card">
-  <h2>Top Ideas This Afternoon</h2>
-  {ideas_html}
-</div>
-<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent v5 &nbsp;&bull;&nbsp; 2PM Brief &nbsp;&bull;&nbsp; therealjoshjames22@gmail.com</p>
-</body></html>"""
-    return html
-
-
-def build_night_email(sounds, creators, ideas, date_str):
-    viral_today = [v for c in creators for v in c["videos"] if v.get("viral")]
-    top_sound   = sounds[0] if sounds else {"title": "--", "link": ""}
-
-    recap_html = ""
-    for v in viral_today[:5]:
-        vp    = v.get("plays", 0)
-        watch = f'<a href="{v["url"]}" class="watch-btn">Watch â</a>' if v.get("url") else ""
-        copy_t = f'<div style="font-size:10px;color:#4ade80;margin-top:3px;">Copy this: {v["copy_this"]}</div>' if v.get("copy_this") else ""
-        recap_html += f"""
-        <div style="padding:10px 0;border-bottom:1px solid #1c2235;">
-          <div style="font-size:13px;font-weight:600;color:{plays_color(vp)};">{fmt_plays(vp)} views</div>
-          <div style="font-size:12px;color:#8a9ab0;margin-top:2px;">{v["desc"][:70]}</div>
-          {copy_t}
-          {watch}
-        </div>"""
-    if not recap_html:
-        recap_html = '<p style="font-size:13px;color:#333;">No major viral content today in your niche.</p>'
-
-    tomorrow_html = ""
-    for idea in ideas[:4]:
-        tomorrow_html += f"""
-        <div style="border-left:3px solid #4a9eff;padding:10px 14px;margin-bottom:10px;background:#0d1018;border-radius:0 8px 8px 0;">
-          <div style="font-size:10px;font-weight:700;color:#4a9eff;margin-bottom:4px;letter-spacing:.5px;">{idea["pillar"]}</div>
-          <div style="font-size:13px;color:#d4d8e0;margin-bottom:4px;">{idea["idea"]}</div>
-          <div style="font-size:10px;color:#4a5570;">Sound: {idea["sound"]} &nbsp;&bull;&nbsp; {idea["hashtags"]}</div>
-        </div>"""
-
-    ts_name = top_sound.get("title", "--")
-    top_sound_link = f'<a href="{top_sound["link"]}" style="color:#4a9eff;">{ts_name}</a>' if top_sound.get("link") else ts_name
-
-    html = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>{email_style()}</style></head><body>
-<div style="background:linear-gradient(135deg,#0a0c14,#0f1228);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;border:1px solid #1c2235;">
-  <div style="font-size:28px;margin-bottom:6px;">Night Brief</div>
-  <h1 style="font-size:20px;font-weight:900;color:#e8ecf4;">Today in Review</h1>
-  <p style="color:#4a5570;font-size:12px;">9PM &nbsp;&bull;&nbsp; {date_str}</p>
-</div>
-<div class="card">
-  <h2>What Went Viral In Your Niche Today</h2>
-  {recap_html}
-</div>
-<div class="card">
-  <h2>Tomorrow's Content Plan</h2>
-  {tomorrow_html}
-</div>
-<div style="background:#0a1828;border:1px solid #1e3a5f;border-radius:12px;padding:16px;margin-bottom:14px;">
-  <h2 style="color:#4a9eff;">Use This Sound Tomorrow</h2>
-  <p style="font-size:14px;line-height:1.6;">{top_sound_link} -- post first thing in the morning for max reach</p>
-</div>
-<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent v5 &nbsp;&bull;&nbsp; 9PM Brief &nbsp;&bull;&nbsp; therealjoshjames22@gmail.com</p>
-</body></html>"""
-    return html
-
-
-# -- EMAIL SENDER ----------------------------------------------------
-def send_email(subject, html_body):
-    if not EMAIL_PASSWORD:
-        print(f"[WARN] No EMAIL_PASSWORD -- skipping send. Subject: {subject}")
-        return
-    try:
-        msg            = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"]    = EMAIL_FROM
-        msg["To"]      = EMAIL_TO
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
-            s.login(EMAIL_FROM, EMAIL_PASSWORD)
-            s.sendmail(EMAIL_FROM, EMAIL_TO, msg.as_string())
-        print(f"[OK] Email sent: {subject}")
-    except Exception as e:
-        print(f"[ERROR] Email failed: {e}")
-
-
-# -- WRITE DATA.JSON -------------------------------------------------
-def write_data_json(sounds, creators, tags, top_videos, ideas):
-    now = datetime.utcnow().isoformat() + "Z"
-    six_hrs_ago = time.time() - 6 * 3600
-    breakouts = []
-    for v in top_videos:
-        ct    = v.get("createTime", 0)
-        plays = v.get("playCount", 0) or v.get("stats", {}).get("playCount", 0)
-        if ct > six_hrs_ago and plays >= 50000:
-            breakouts.append({
-                "handle": v.get("authorMeta", {}).get("name", ""),
-                "plays":  plays,
-                "desc":   v.get("text", v.get("desc", ""))[:120],
-                "url":    v.get("webVideoUrl", ""),
-                "sound":  v.get("musicMeta", {}).get("musicName", ""),
-            })
-
-    data = {
-        "lastUpdated": now,
-        "briefType":  BRIEF_TYPE,
-        "sounds": [
-            {"title": s.get("title",""), "author": s.get("author",""),
-             "rank": s.get("rank",0), "rank_diff": s.get("rank_diff",0),
-             "cover": s.get("cover",""), "link": s.get("link",""),
-             "trend": s.get("trend",[]), "maxPlays": s.get("maxPlays",0)}
-            for s in sounds[:20]
-        ],
-        "creators": [
-            {"handle": c.get("handle",""), "size": c.get("size",""),
-             "fans": c.get("fans",0),
-             "topVideo": c["videos"][0]["url"] if c.get("videos") else "",
-             "topDesc":  c["videos"][0]["desc"] if c.get("videos") else "",
-             "topPlays": c["videos"][0]["plays"] if c.get("videos") else 0,
-             "formatType": c["videos"][0].get("format_type","") if c.get("videos") else ""}
-            for c in creators[:15]
-        ],
-        "hashtags":  tags[:15],
-        "topVideos": [
-            {"handle": v.get("authorMeta",{}).get("name",""),
-             "fans": v.get("authorMeta",{}).get("fans",0),
-             "plays": v.get("playCount",0),
-             "desc": v.get("text", v.get("desc",""))[:120],
-             "sound": v.get("musicMeta",{}).get("musicName",""),
-             "url": v.get("webVideoUrl",""),
-             "thumb": v.get("videoMeta",{}).get("coverUrl",""),
-             "createTime": v.get("createTime",0)}
-            for v in top_videos[:20]
-        ],
-        "breakouts": breakouts,
-        "ideas":     ideas[:5],
-    }
-    with open("data.json", "w") as f:
-        json.dump(data, f, indent=2)
-    print(f"[OK] data.json written -- {len(sounds)} sounds, {len(creators)} creators, {len(breakouts)} breakouts")
-
-
-# -- MAIN ------------------------------------------------------------
-def main():
-    date_str = datetime.now().strftime("%A, %B %-d %Y")
-    brief    = BRIEF_TYPE.lower()
-
-    print(f"\n{'='*52}")
-    print(f"Football Trend Agent v5 -- {brief.upper()} RUN")
-    print(f"{date_str}")
-    print(f"{'='*52}\n")
-
-    # Afternoon/night reuse morning data to save Apify credits
-    if brief in ("afternoon", "night") and os.path.exists("data.json"):
-        print("  Reusing cached data.json (no new Apify call needed)...")
-        with open("data.json") as f:
-            cached = json.load(f)
-        sounds     = cached.get("sounds", [])
-        creators   = cached.get("creators", [])
-        tags       = cached.get("hashtags", [])
-        top_videos = cached.get("topVideos", [])
-        ideas      = cached.get("ideas", [])
-    else:
-        raw              = fetch_all_raw()
-        sounds           = fetch_trending_sounds(raw)
-        creators         = fetch_creator_spy(raw)
-        tags, top_videos = fetch_hashtags(raw)
-        if not sounds:
-            print("  [FALLBACK] Using curated sounds")
-            sounds = FALLBACK_SOUNDS
-        if not creators:
-            print("  [FALLBACK] Using curated creators")
-            creators = FALLBACK_CREATORS
-        if not tags:
-            print("  [FALLBACK] Using curated hashtag data")
-            tags = FALLBACK_TAGS
-        ideas = generate_video_ideas(sounds, creators, top_videos)
-
-    print(f"\n  Sounds: {len(sounds)}  |  Creators: {len(creators)}  |  Tags: {len(tags)}  |  Top videos: {len(top_videos)}\n")
-
-    write_data_json(sounds, creators, tags, top_videos, ideas)
-
-    if brief in ("morning", "afternoon", "night"):
-        if brief == "morning":
-            html    = build_morning_email(sounds, creators, tags, top_videos, ideas, date_str)
-            subject = f"Football Brief -- {date_str}"
-        elif brief == "afternoon":
-            html    = build_afternoon_email(sounds, creators, top_videos, ideas, date_str)
-            subject = f"Afternoon Update -- {date_str}"
-        else:
-            html    = build_night_email(sounds, creators, ideas, date_str)
-            subject = f"Night Brief -- {date_str}"
-        send_email(subject, html)
-        print("[OK] Email sent.\n")
-    else:
-        data_read = json.load(open("data.json"))
-        if data_read.get("breakouts"):
-            b = data_read["breakouts"][0]
-            html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{{background:#0a0c10;color:#d4d8e0;font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;}}</style></head><body>
-            <h2 style="color:#f87171;">BREAKOUT ALERT</h2>
-            <p><strong style="color:#e8ecf4;">@{b["handle"]}</strong> just hit <strong style="color:#f87171;">{b["plays"]:,} views</strong> in the last 6 hours.</p>
-            <p style="color:#4a5570;">Sound: {b["sound"]}</p>
-            <p style="color:#8a9ab0;">{b["desc"]}</p>
-            <p><a href="{b["url"]}" style="color:#4a9eff;">Watch Video â</a></p>
-            </body></html>"""
-            send_email(f"BREAKOUT: @{b['handle']} -- {b['plays']:,} views right now", html)
-        else:
-            print("[OK] Scan complete. No breakouts. data.json updated.\n")
-
-    print("[OK] Done.\n")
-
-
-if __name__ == "__main__":
-    main()
+H
+ÈÚ^Ú×ØYÛÈH[YK[YJ
+HH
+
+ÍXZÛÝ]ÈH×BÜ[ÜÝY[ÜÎÝHÙ]
+ÜX]U[YH
+B^\ÈHÙ]
+^PÛÝ[
+HÜÙ]
+Ý]ÈßJKÙ]
+^PÛÝ[
+BYÝÚ^Ú×ØYÛÈ[^\ÈH
+LXZÛÝ]Ë\[
+Â[HÙ]
+]]ÜY]HßJKÙ]
+[YHK^\È^\Ë\ØÈÙ]
+^Ù]
+\ØÈJVÎLK\Ù]
+ÙXY[Õ\KÛÝ[Ù]
+]\ÚXÓY]HßJKÙ]
+]\ÚXÓ[YHKJB]HHÂ\Ý\]YÝËYY\HQQÕTKÛÝ[ÈÂÈ]HËÙ]
+]HK]]ÜËÙ]
+]]ÜKYXÞXÛHËÙ]
+YXÞXÛHKÛÛY[ÙHËÙ]
+ÛÛY[ÙH
+K[ÈËÙ]
+[ÈKX^^\ÈËÙ]
+X^Ü^\È
+KXÚUY[ÐÛÝ[ËÙ]
+XÚWÝY[×ØÛÝ[
+KXÚUY[ÜÈËÙ]
+XÚWÝY[ÜÈ×JVÎW_BÜÈ[ÛÝ[ÖÎBKÜX]ÜÈÂÈ[HËÙ]
+[HKÚ^HËÙ]
+Ú^HK[ÈËÙ]
+[È
+KÜY[ÈÖÈY[ÜÈVÌVÈ\HYËÙ]
+Y[ÜÈH[ÙHÜ\ØÈÖÈY[ÜÈVÌVÈ\ØÈHYËÙ]
+Y[ÜÈH[ÙHÜ^\ÈÖÈY[ÜÈVÌVÈ^\ÈHYËÙ]
+Y[ÜÈH[ÙHÜÛÛY[ÙHÖÈY[ÜÈVÌVÈÛÛY[ÙHHYËÙ]
+Y[ÜÈH[ÙHBÜÈ[ÜX]ÜÖÎMWBK\ÚYÜÈYÜÖÎMWKÜY[ÜÈÂÈ[HÙ]
+]]ÜY]HßJKÙ]
+[YHK[ÈÙ]
+]]ÜY]HßJKÙ]
+[È
+K^\ÈÙ]
+^PÛÝ[
+K\ØÈÙ]
+^Ù]
+\ØÈJVÎLKÛÝ[Ù]
+]\ÚXÓY]HßJKÙ]
+]\ÚXÓ[YHK\Ù]
+ÙXY[Õ\KÜX]U[YHÙ]
+ÜX]U[YH
+_BÜ[ÜÝY[ÜÖÎBKXZÛÝ]ÈXZÛÝ]ËYX\ÈYX\ÖÎWKBÚ]Ü[]KÛÛÈH\ÈÛÛ[\
+]K[[LB[
+ÓÒ×H]KÛÛÜ][KHÛ[ÛÝ[Ê_HÛÝ[ËÛ[ÜX]ÜÊ_HÜX]ÜËÛ[XZÛÝ]Ê_HXZÛÝ]ÈBÈKHPRSKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKBYXZ[
+N]WÜÝH]][YKÝÊ
+KÝ[YJPK	P	KY	VHBYYHQQÕTKÝÙ\
+B[
+ÉÏIÊLHB[
+ÛÝ[[YÙ[KHØYY\\
+_HSB[
+Ù]WÜÝHB[
+ÉÏIÊLWBY[[ÜHHØYÛY[[ÜJ
+BYYY[
+Y\ÛÛYÚH[ÜË]^\ÝÊ]KÛÛN[
+]\Ú[ÈØXÚY]KÛÛ
+È]È\YHØ[YYY
+KBÚ]Ü[]KÛÛH\ÈØXÚYHÛÛØY
+BÛÝ[ÈHØXÚYÙ]
+ÛÝ[È×JBÜX]ÜÈHØXÚYÙ]
+ÜX]ÜÈ×JBYÜÈHØXÚYÙ]
+\ÚYÜÈ×JBÜÝY[ÜÈHØXÚYÙ]
+ÜY[ÜÈ×JBYX\ÈHØXÚYÙ]
+YX\È×JBØ\ÈH×B[ÙN]ÈH]ÚØ[Ü]Ê
+BÛÝ[ÈH]ÚÝ[[×ÜÛÝ[Ê]ÊBÜX]ÜÈH]ÚØÜX]ÜÜÜJ]ÊBYÜËÜÝY[ÜÈH]ÚÚ\ÚYÜÊ]ÊBYÝÛÝ[Î[
+ÑSPÒ×H\Ú[ÈÝ\]YÛÝ[ÈBÛÝ[ÈHSPÒ×ÔÓÕSÂYÝÜX]ÜÎ[
+ÑSPÒ×H\Ú[ÈÝ\]YÜX]ÜÈBÜX]ÜÈHSPÒ×ÐÔPUÔÂYÝYÜÎ[
+ÑSPÒ×H\Ú[ÈÝ\]Y\ÚYÈ]HBYÜÈHSPÒ×ÕQÔÂYX\ÈHÙ[\]WÝY[×ÚYX\ÊÛÝ[ËÜX]ÜËÜÝY[ÜÊBØ\ÈH]XÝØÛÛ[ÙØ\ÊÜX]ÜËÜÝY[ÜÊBY[[ÜHH\]WÛY[[ÜJY[[ÜKÛÝ[ËÜX]ÜËÜÝY[ÜÊBØ]WÛY[[ÜJY[[ÜJB[
+ÛÝ[ÎÛ[ÛÝ[Ê_HÜX]ÜÎÛ[ÜX]ÜÊ_HYÜÎÛ[YÜÊ_HÜY[ÜÎÛ[ÜÝY[ÜÊ_WBÜ]WÙ]WÚÛÛÛÝ[ËÜX]ÜËYÜËÜÝY[ÜËYX\ÊBØ\ÈHØ\ÈY	ÙØ\ÉÈ[\
+H[ÙH]XÝØÛÛ[ÙØ\ÊÜX]ÜËÜÝY[ÜÊBYYY[
+[Ü[ÈY\ÛÛYÚNYYYOH[Ü[È[HZ[Û[Ü[×Ù[XZ[
+ÛÝ[ËÜX]ÜËYÜËÜÝY[ÜËYX\Ë]WÜÝY[[ÜKØ\ÊBÝXXÝH¼'ãâÛÝ[YYKHÙ]WÜÝH[YYYOHY\ÛÛ[HZ[ØY\ÛÛÙ[XZ[
+ÛÝ[ËÜX]ÜËÜÝY[ÜËYX\Ë]WÜÝY[[ÜJBÝXXÝHY\ÛÛ\]HKHÙ]WÜÝH[ÙN[HZ[ÛYÚÙ[XZ[
+ÛÝ[ËÜX]ÜËYX\Ë]WÜÝY[[ÜJBÝXXÝHYÚYYKHÙ]WÜÝHÙ[Ù[XZ[
+ÝXXÝ[
+B[
+ÓÒ×H[XZ[Ù[B[ÙN]WÜXYHÛÛØY
+Ü[]KÛÛJBY]WÜXYÙ]
+XZÛÝ]ÈNH]WÜXYÈXZÛÝ]ÈVÌB[HQÐÕTH[[XYY]HÚ\Ù]H]NÝ[OÙ^ÞØXÚÙÜÝ[ÌLÌLØÛÛÜÙ
+LÙÛY[Z[NØ[Ë\Ù\YÛX^]ÚYÛX\Ú[]]ÎÜY[Îß_OÜÝ[OÚXYÙOÝ[OHÛÛÜÙ
+ÌMÌNÈPRÓÕUSTÚÝÛÈÝ[OHÛÛÜÙNXÙÈØÈ[H_OÜÝÛÏ\Ý]ÝÛÈÝ[OHÛÛÜÙ
+ÌMÌNÈØÈ^\ÈNHY]ÜÏÜÝÛÏ[H\Ý
+Ý\ËÜÝ[OHÛÛÜÍMMMÌÈÛÝ[ØÈÛÝ[_OÜÝ[OHÛÛÜÎNXXÈØÈ\ØÈ_OÜHYHØÈ\_HÝ[OHÛÛÜÍNYYÈØ]ÚY[È8¡¥ÏØOÜØÙOÚ[Ù[Ù[XZ[
+PRÓÕUØÉÚ[I×_HKHØÉÜ^\É×NHY]ÜÈYÚÝÈ[
+B[ÙN[
+ÓÒ×HØØ[ÛÛ\]KÈXZÛÝ]Ë]KÛÛ\]YB[
+ÓÒ×HÛKBY×Û[YW×ÈOH×ÛXZ[×ÈXZ[
+B
