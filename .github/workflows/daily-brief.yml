@@ -1,24 +1,24 @@
-name: Football Trend Agent v5
+name: Football Trend Agent v7
 
 on:
   schedule:
-    # Runs every 3 hours (8x per day) -- all times UTC
-    # 6AM ET  = 10:00 UTC  --> morning brief
-    # 9AM ET  = 13:00 UTC  --> scan
-    # 12PM ET = 16:00 UTC  --> scan
-    # 2PM ET  = 18:00 UTC  --> afternoon brief
-    # 5PM ET  = 21:00 UTC  --> scan
-    # 7PM ET  = 23:00 UTC  --> scan
-    # 9PM ET  = 01:00 UTC  --> night brief
-    # 12AM ET = 04:00 UTC  --> scan
+    # All times UTC
+    # 6AM ET  = 10:00 UTC --> morning brief (deep scrape)
+    # 9AM ET  = 13:00 UTC --> scan
+    # 12PM ET = 16:00 UTC --> scan
+    # 3PM ET  = 19:00 UTC --> afternoon brief
+    # 5PM ET  = 21:00 UTC --> scan
+    # 7PM ET  = 23:00 UTC --> scan
+    # 8PM ET  = 00:00 UTC --> night brief
+    # 12AM ET = 04:00 UTC --> scan
     - cron: "0 10 * * *"   # 6AM ET  -- morning
     - cron: "0 13 * * *"   # 9AM ET  -- scan
     - cron: "0 16 * * *"   # 12PM ET -- scan
-    - cron: "0 18 * * *"   # 2PM ET  -- afternoon
+    - cron: "0 19 * * *"   # 3PM ET  -- afternoon
     - cron: "0 21 * * *"   # 5PM ET  -- scan
     - cron: "0 23 * * *"   # 7PM ET  -- scan
-    - cron: "0 1 * * *"    # 9PM ET  -- night
-    - cron: "0 4 * * *"    # 12AM ET -- scan
+    - cron: "0 0  * * *"   # 8PM ET  -- night
+    - cron: "0 4  * * *"   # 12AM ET -- scan
   workflow_dispatch:
     inputs:
       brief_type:
@@ -26,14 +26,19 @@ on:
         required: false
         default: "morning"
 
+permissions:
+  contents: write
+
 jobs:
   run-agent:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -51,10 +56,10 @@ jobs:
           else
             HOUR=$(date -u +%H)
             case $HOUR in
-              10) BRIEF="morning" ;;
-              18) BRIEF="afternoon" ;;
-              01) BRIEF="night" ;;
-              *)  BRIEF="scan" ;;
+              10) BRIEF="morning"   ;;
+              19) BRIEF="afternoon" ;;
+              00) BRIEF="night"     ;;
+              *)  BRIEF="scan"      ;;
             esac
           fi
           echo "brief_type=$BRIEF" >> $GITHUB_OUTPUT
@@ -68,3 +73,13 @@ jobs:
           EMAIL_TO:       ${{ secrets.EMAIL_TO }}
           BRIEF_TYPE:     ${{ steps.brief.outputs.brief_type }}
         run: python agent.py
+
+      - name: Persist trend data to repo
+        run: |
+          git config user.name  "trend-bot"
+          git config user.email "trend-bot@noreply.github.com"
+          git add data.json trend_memory.json 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "chore: update trend data [skip ci]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
