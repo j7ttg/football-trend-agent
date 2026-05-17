@@ -16,14 +16,14 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
 
-# ââ CONFIG ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── CONFIG ────────────────────────────────────────────────────────────────────
 APIFY_TOKEN    = os.environ.get("APIFY_TOKEN", "")
 EMAIL_FROM     = os.environ.get("EMAIL_FROM", "therealjoshjames22@gmail.com")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "")
 EMAIL_TO       = os.environ.get("EMAIL_TO",   "therealjoshjames22@gmail.com")
 BRIEF_TYPE     = os.environ.get("BRIEF_TYPE", "morning")
 
-# ââ HASHTAGS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── HASHTAGS ──────────────────────────────────────────────────────────────────
 # Priority tags get 40 results each on morning run
 PRIORITY_HASHTAGS = [
     "cfb", "footballtiktok", "collegefootball", "dbtraining",
@@ -39,7 +39,7 @@ SECONDARY_HASHTAGS = [
     "christianathlete", "d1commit", "footballlife", "qb", "linebacker",
 ]
 
-# ââ SEED CREATORS (niche anchors â scrape their recent videos) ââââââââââââââââ
+# ── SEED CREATORS (niche anchors — scrape their recent videos) ────────────────
 SEED_CREATORS = [
     "showtimecaleb1", "yo.imcam", "ejizzle00", "yellobeezy",
     "iammike1x_", "lifeofat13",
@@ -48,7 +48,7 @@ SEED_CREATORS = [
     "db_elite_training", "cornerback.university",
 ]
 
-# ââ THRESHOLDS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── THRESHOLDS ────────────────────────────────────────────────────────────────
 CREATOR_MAX_FANS        = 75_000   # raised ceiling slightly
 CREATOR_MIN_FANS        = 100
 CREATOR_MIN_VIEWS       = 5_000    # dropped from 20K
@@ -61,14 +61,14 @@ TIER_GOOD_ZONE          = 50_000
 TIER_VIRAL              = 100_000
 TIER_MEGA               = 500_000
 
-# ââ FOOTBALL CONFIDENCE KEYWORDS âââââââââââââââââââââââââââââââââââââââââââââ
-# Weighted scoring â no hard rejection
+# ── FOOTBALL CONFIDENCE KEYWORDS ─────────────────────────────────────────────
+# Weighted scoring — hard rejection
 FOOTBALL_STRONG = {
     "quarterback","qb","cornerback","defensive back","db","linebacker","lb",
     "safety","wide receiver","wr","tight end","te","running back","rb",
     "offensive lineman","defensive end","pass rush","blitz","coverage",
     "press coverage","zone","man coverage","route","go route","slant",
-    "fade route","7on7","d1","d1athlete","d1football","ncaa","cfb",
+    "fade route","7on7","d1",1","d1athlete","d1football","ncaa","cfb",
     "college football","nfl","gridiron","football","american football",
     "snap","scrimmage","playbook","spring ball","fall ball","camp",
     "db camp","dbcamp","dbtraining","footballtraining","footballdrills",
@@ -92,7 +92,7 @@ SOCCER_REJECT = {
 }
 WR_SIGNALS = {
     "wr","wide receiver","widereceiver","route running","separation",
-    "release","hands","catch radius","route tree","wideout",
+    "release","`ands","catch radius","route tree","wideout",
 }
 
 def football_confidence(text):
@@ -120,12 +120,12 @@ def football_confidence(text):
     reject = score < 10
     return score, is_wr, reject
 
-# ââ HOOK PATTERNS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── HOOK PATTERNS ─────────────────────────────────────────────────────────────
 HOOK_PATTERNS = [
     "pov", "nobody talks about", "the difference between", "this is what",
     "coach finally", "day in the life", "watch me", "they don't show you",
     "d1 vs", "high school vs college", "what db camp really looks like",
-    "before and after", "this drill", "if you play db","grind don't stop",
+    "before and after", "this drill", "if you play db", "grind don't stop",
     "they called me", "committed", "offer day", "first practice",
     "nobody saw this coming", "raw footage", "unfiltered", "real talk",
     "things they don't teach", "most underrated", "why i",
@@ -144,13 +144,13 @@ def extract_opening_line(desc):
     if not desc: return ""
     return desc.strip()[:80]
 
-# ââ CONTENT TYPE ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── CONTENT TYPE ──────────────────────────────────────────────────────────────
 CONTENT_TYPES = {
     "pov":            ["pov","point of view"],
     "rivalry":        ["1v1","vs","battle","competition","who wins"],
     "transformation": ["transformation","glow up","before","after","progress"],
     "emotional":      ["real talk","truth","story","honest","felt this"],
-    "motivational":   ["motivation","grind","work","believe","faith","god",""blessed"],
+    "motivational":   ["motivation","grind","work","believe","faith","god","blessed"],
     "locker_room":    ["locker room","team","brotherhood","culture","family"],
     "grindset":       ["grind","work ethic","no days off","discipline","sacrifice","5am","6am"],
     "cinematic":      ["cinematic","slow mo","film","aesthetic","vibes"],
@@ -164,7 +164,7 @@ def classify_content(desc):
         if any(k in d for k in kws): return ctype
     return "general"
 
-# ââ CREATOR TIER ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── CREATOR TIER ──────────────────────────────────────────────────────────────
 def creator_tier(fans):
     if fans < 1_000:   return "NANO",     "#f87171"
     if fans < 5_000:   return "MICRO",    "#fb923c"
@@ -173,7 +173,7 @@ def creator_tier(fans):
     if fans <= 75_000: return "RISING",   "#888"
     return None, None
 
-# ââ CONFIDENCE SCORE ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── CONFIDENCE SCORE ──────────────────────────────────────────────────────────
 def video_confidence(plays, fans, hours_old, football_conf, hook_count, ctype):
     score = 0
     # plays tier (max 25)
@@ -182,7 +182,7 @@ def video_confidence(plays, fans, hours_old, football_conf, hook_count, ctype):
     elif plays >= TIER_GOOD_ZONE:  score += 14
     elif plays >= TIER_ON_THE_RISE:score += 8
     else:                          score += 3
-    # follower/view ratio (max 30) â breakout efficiency
+    # follower/view ratio (max 30) — breakout efficiency
     ratio = plays / max(fans, 1)
     if ratio >= 100:  score += 30
     elif ratio >= 50: score += 25
@@ -239,14 +239,14 @@ def audio_lifecycle(niche_vids, hours_since_first, accel):
     return "HEATING UP"
 
 LIFECYCLE_EMOJI = {
-    "EARLY":      "ð",
-    "HEATING UP": "â¡",
-    "PEAKING":    "ð¥",
-    "SATURATED":  "â ï¸",
-    "DECLINING":  "ð",
+    "EARLY":      "👀",
+    "HEATING UP": "⚡",
+    "PEAKING":    "🔥",
+    "SATURATED":  "⚠️",
+    "DECLINING":  "📉",
 }
 
-# ââ MEMORY ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── MEMORY ────────────────────────────────────────────────────────────────────
 MEMORY_FILE = "trend_memory.json"
 DATA_FILE   = "data.json"
 
@@ -320,10 +320,10 @@ def update_memory(memory, sounds, creators, top_videos, hashtags):
 
     return memory
 
-# ââ APIFY âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── APIFY ─────────────────────────────────────────────────────────────────────
 def apify_run(actor, input_data, timeout=300):
     if not APIFY_TOKEN:
-        print(f"[WARN] No APIFY_TOKEN â skipping {actor}")
+        print(f"[WARN] No APIFY_TOKEN — skipping {actor}")
         return []
     try:
         r = requests.post(
@@ -339,7 +339,7 @@ def apify_run(actor, input_data, timeout=300):
         return []
 
 def fetch_hashtag_batch(tags, results_per):
-    print(f"  Scraping {len(tags)} hashtags Ã {results_per} results...")
+    print(f"  Scraping {len(tags)} hashtags × {results_per} results...")
     return apify_run("clockworks/tiktok-hashtag-scraper", {
         "hashtags":         tags,
         "resultsPerPage":   results_per,
@@ -376,14 +376,14 @@ def fetch_all_raw():
         print(f"  Total raw items (morning deep scrape): {len(raw)}")
         return raw
 
-    # Afternoon / night / scan â check if we should re-scrape accelerating signals
+    # Afternoon / night / scan — check if we should re-scrape accelerating signals
     prev = load_prev_data()
     hot_tags = _get_accelerating_hashtags(prev)
-  2 if hot_tags:
-        print(f"  Hot hashtags detected â refreshing: {hot_tags}")
+    if hot_tags:
+        print(f"  Hot hashtags detected — refreshing: {hot_tags}")
         raw = fetch_hashtag_batch(hot_tags, 30)
     else:
-        print("  No major acceleration detected â using cached morning data")
+        print("  No major acceleration detected — using cached morning data")
         raw = []
 
     print(f"  Total raw items (refresh): {len(raw)}")
@@ -404,7 +404,7 @@ def _get_accelerating_hashtags(prev_data):
             hot.append(t)
     return hot[:8]
 
-# ââ PROCESS VIDEOS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── PROCESS VIDEOS ────────────────────────────────────────────────────────────
 def enrich_video(v, now_ts):
     """Extract and enrich all fields from a raw Apify video item."""
     ct      = v.get("createTime", 0)
@@ -463,28 +463,28 @@ def _viral_reason(plays, fans, hours, ctype):
     if hours < 24:    parts.append("posted <24h ago")
     if hours < 48:    parts.append("posted <48h ago")
     if ctype in ("rivalry","tutorial","pov"): parts.append(f"{ctype} format")
-    return " Â· ".join(parts) if parts else ""
+    return " · ".join(parts) if parts else ""
 
 def _copy_this(desc, ctype, hooks, is_wr):
     if hooks: return f'Hook: "{hooks[0].title()}" angle works here'
-    if is_wr: return "Mirror from DB perspective â press/trail coverage angle"
+    if is_wr: return "Mirror from DB perspective — press/trail coverage angle"
     if ctype == "rivalry":      return "Film a 1v1 drill battle with this audio"
     if ctype == "pov":          return "POV caption + intense training clip"
     if ctype == "grindset":     return "Early morning solo workout, no talking"
-    if ctype == "tutorial":     return "Technique breakdown â label the footwork"
+    if ctype == "tutorial":     return "Technique breakdown — label the footwork"
     if ctype == "emotional":    return "Raw honest caption, slow-mo reps"
     if ctype == "locker_room":  return "Authentic team moment, no filter"
     return "Adapt to your DB/training content"
 
 def _db_flip(desc, ctype):
     """Suggest how a DB creator can flip WR content."""
-    if ctype == "tutorial":  return "DB FLIP: Film the same drill from cornerback side â press technique"
-    if ctype == "rivalry":   return "DB FLIP: 1v1 with a WR â show the lockup from your angle"
+    if ctype == "tutorial":  return "DB FLIP: Film the same drill from cornerback side — press technique"
+    if ctype == "rivalry":   return "DB FLIP: 1v1 with a WR — show the lockup from your angle"
     if ctype == "pov":       return "DB FLIP: POV of reading the route, not running it"
     if ctype == "grindset":  return "DB FLIP: Same grind energy, DB-specific drills"
     return "DB FLIP: Mirror this concept from the defensive side"
 
-# ââ TRENDING SOUNDS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── TRENDING SOUNDS ───────────────────────────────────────────────────────────
 def fetch_trending_sounds(enriched):
     now_ts = time.time()
     sound_map = {}
@@ -539,7 +539,7 @@ def fetch_trending_sounds(enriched):
     print(f"  Trending sounds: {len(sounds)}")
     return sounds[:20]
 
-# ââ CREATOR SPY ââââââââââââââââââââââââââââââââââââââââââââââââââââ âââââââââââ
+# ── CREATOR SPY ───────────────────────────────────────────────────────────────
 def fetch_creator_spy(enriched):
     creator_map = {}
 
@@ -609,10 +609,10 @@ def fetch_creator_spy(enriched):
         return (t, -c["max_ratio"])
 
     creators = sorted(creator_map.values(), key=sort_key)
-    print(f"  Creators (â¤{CREATOR_MAX_FANS:,} fans): {len(creators)}")
+    print(f"  Creators (≤{CREATOR_MAX_FANS:,} fans): {len(creators)}")
     return creators[:15]
 
-# ââ HASHTAG DISCOVERY âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── HASHTAG DISCOVERY ─────────────────────────────────────────────────────────
 def fetch_hashtags(enriched):
     tag_map  = {}
     top_vids = []
@@ -650,7 +650,7 @@ def fetch_hashtags(enriched):
     print(f"  Hashtags found: {len(tags)}")
     return tags[:30], top_vids
 
-# ââ HOOK DATABASE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── HOOK DATABASE ─────────────────────────────────────────────────────────────
 def build_hook_database(enriched, memory):
     """Build hook database from live data + memory history."""
     hooks_seen = {}
@@ -694,7 +694,7 @@ def _cluster_openers(openers):
                 patterns[tw] = patterns.get(tw, 0) + 1
     return sorted(patterns.items(), key=lambda x: -x[1])[:10]
 
-# ââ CONTENT GAP DETECTION ââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── CONTENT GAP DETECTION ────────────────────────────────────────────────────
 def detect_content_gaps(creators, top_vids):
     seen_ctypes = set()
     for c in creators:
@@ -706,18 +706,18 @@ def detect_content_gaps(creators, top_vids):
 
     gap_ideas = []
     if "locker_room" in gaps:
-        gap_ideas.append({"gap":"Locker Room Culture","idea":"Behind-the-scenes team moments â almost no one does this authentically","pillar":"Brotherhood"})
+        gap_ideas.append({"gap":"Locker Room Culture","idea":"Behind-the-scenes team moments — almost no one does this authentically","pillar":"Brotherhood"})
     if "transformation" in gaps:
-        gap_ideas.append({"gap":"Transformation","idea":"Before/after speed or strength progression â extremely shareable","pillar":"Training"})
+        gap_ideas.append({"gap":"Transformation","idea":"Before/after speed or strength progression — extremely shareable","pillar":"Training"})
     if "emotional" in gaps:
-        gap_ideas.append({"gap":"Emotional/Raw","idea":"Real talk about the grind, faith, or setbacks â underserved in football niche","pillar":"Faith/Mindset"})
+        gap_ideas.append({"gap":"Emotional/Raw","idea":"Real talk about the grind, faith, or setbacks — underserved in football niche","pillar":"Faith/Mindset"})
     if "cinematic" in gaps:
-        gap_ideas.append({"gap":"Cinematic Training","idea":"Slow-mo DB drill with cinematic edit â very repeatable, low competition","pillar":"DB Training"})
+        gap_ideas.append({"gap":"Cinematic Training","idea":"Slow-mo DB drill with cinematic edit — very repeatable, low competition","pillar":"DB Training"})
     if "tutorial" in gaps:
-        gap_ideas.append({"gap":"Tutorial/Breakdown","idea":"Technique breakdown with text overlays â strong D1 credibility signal","pillar":"DB Training"})
+        gap_ideas.append({"gap":"Tutorial/Breakdown","idea":"Technique breakdown with text overlays — strong D1 credibility signal","pillar":"DB Training"})
     return gap_ideas[:4]
 
-# ââ VIDEO IDEAS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── VIDEO IDEAS ───────────────────────────────────────────────────────────────
 def generate_video_ideas(sounds, creators, top_vids):
     top  = sounds[0] if sounds else {}
     top2 = sounds[1] if len(sounds) > 1 else {}
@@ -726,31 +726,31 @@ def generate_video_ideas(sounds, creators, top_vids):
 
     ideas = [
         {"priority":"URGENT","pillar":"DB Training",
-         "idea":"Film a DB press coverage drill â show the footwork in slow-mo. Caption: 'The technique they don't teach at most camps'",
+         "idea":"Film a DB press coverage drill — show the footwork in slow-mo. Caption: 'The technique they don't teach at most camps'",
          "sound":ts,"sound_link":tl,
          "hashtags":"#dbtraining #cornerback #footballtraining #d1",
          "hook":"They don't teach this at most camps","ctype":"tutorial","confidence":88,
          "inspo_url": top.get("niche_videos",[{}])[0].get("url","") if top.get("niche_videos") else ""},
         {"priority":"HOT","pillar":"1v1 Competition",
-         "idea":"Raw 1v1 footage â DB vs WR. No music during play, add sound after. Caption: 'POV: you finally lock him up'",
+         "idea":"Raw 1v1 footage — DB vs WR. No music during play, add sound after. Caption: 'POV: you finally lock him up'",
          "sound":ts,"sound_link":tl,
          "hashtags":"#1v1football #cornerback #dblife #footballtraining",
          "hook":"POV: you finally lock him up","ctype":"rivalry","confidence":91,
          "inspo_url":""},
         {"priority":"HOT","pillar":"Faith/Mindset",
-         "idea":"30-second grind montage â early morning workout, no words for first 10 sec, then one line about faith/discipline",
+         "idea":"30-second grind montage — early morning workout, no words for first 10 sec, then one line about faith/discipline",
          "sound":t2s,"sound_link":t2l,
          "hashtags":"#d1athlete #footballworkout #christianathlete #grind",
          "hook":"Nobody sees the 5AM work","ctype":"grindset","confidence":85,
          "inspo_url":""},
         {"priority":"WATCH","pillar":"DB Training",
-         "idea":"Break down a route concept from the DB perspective â use text overlay to label the technique",
+         "idea":"Break down a route concept from the DB perspective — use text overlay to label the technique",
          "sound":t2s,"sound_link":t2l,
          "hashtags":"#defensiveback #dbtraining #collegefootball #cornerback",
          "hook":"The difference between D1 and high school DBs","ctype":"tutorial","confidence":79,
          "inspo_url":""},
         {"priority":"WATCH","pillar":"Brotherhood",
-         "idea":"Behind-the-scenes team warm-up or walk-through â authentic locker room feel, no filter",
+         "idea":"Behind-the-scenes team warm-up or walk-through — authentic locker room feel, no filter",
          "sound":ts,"sound_link":tl,
          "hashtags":"#collegefootball #footballteam #d1athlete #brotherhood",
          "hook":"What D1 practice actually looks like","ctype":"locker_room","confidence":74,
@@ -758,12 +758,12 @@ def generate_video_ideas(sounds, creators, top_vids):
     ]
     return ideas
 
-# ââ BEST POST TIME ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── BEST POST TIME ────────────────────────────────────────────────────────────
 def best_post_time():
-    times = ["6:00â7:00 AM","7:00â8:00 AM","11:00 AMâ1:00 PM","5:00â7:00 PM","8:00â10:00 PM"]
+    times = ["6:00–7:00 AM","7:00–8:00 AM","11:00 AM–1:00 PM","5:00–7:00 PM","8:00–10:00 PM"]
     return random.choice(times)
 
-# ââ FORMAT UTILS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── FORMAT UTILS ─────────────────────────────────────────────────────────────
 def fmt_plays(p):
     if p >= 1_000_000: return f"{p/1_000_000:.1f}M"
     if p >= 1_000:     return f"{p/1_000:.0f}K"
@@ -777,17 +777,17 @@ def plays_color(p):
     return "#4a5570"
 
 def confidence_badge(score):
-    if score >= 90: return f'<span style="color:#f87171;font-weight:700;">ð¥ {score}/100</span>'
-    if score >= 75: return f'<span style="color:#fbbf24;font-weight:700;">â¡ {score}/100</span>'
-    if score >= 60: return f'<span style="color:#4ade80;font-weight:700;">â {score}/100</span>'
+    if score >= 90: return f'<span style="color:#f87171;font-weight:700;">🔥 {score}/100</span>'
+    if score >= 75: return f'<span style="color:#fbbf24;font-weight:700;">⚡ {score}/100</span>'
+    if score >= 60: return f'<span style="color:#4ade80;font-weight:700;">✅ {score}/100</span>'
     return f'<span style="color:#4a5570;">{score}/100</span>'
 
 def fconf_badge(score):
-    if score >= 80: return f'<span style="color:#4ade80;">â {score}% football</span>'
-    if score >= 50: return f'<span style="color:#4a9eff;">â {score}% football</span>'
-    return f'<span style="color:#4a5570;">â {score}% conf</span>'
+    if score >= 80: return f'<span style="color:#4ade80;">⚑ {score}% football</span>'
+    if score >= 50: return f'<span style="color:#4a9eff;">⚑ {score}% football</span>'
+    return f'<span style="color:#4a5570;">⚑ {score}% conf</span>'
 
-# ââ EMAIL STYLE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── EMAIL STYLE ───────────────────────────────────────────────────────────────
 def email_style():
     return """
     body{background:#0a0c10;color:#d4d8e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:640px;margin:0 auto;padding:16px;font-size:13px;}
@@ -814,10 +814,10 @@ def email_style():
     .divider{border:none;border-top:1px solid #1c2235;margin:12px 0;}
     """
 
-# ââ SOUND CARD ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── SOUND CARD ────────────────────────────────────────────────────────────────
 def build_sound_card(s, memory, idx):
     lc      = s.get("lifecycle","HEATING UP")
-    lc_em   = LIFECYCLE_EMOJI.get(lc,"â¡")
+    lc_em   = LIFECYCLE_EMOJI.get(lc,"⚡")
     conf    = s.get("confidence",0)
     nv      = s.get("niche_video_count",0)
     mp      = s.get("max_plays",0)
@@ -834,7 +834,7 @@ def build_sound_card(s, memory, idx):
     lc_colors = {"EARLY":"#4ade80","HEATING UP":"#fbbf24","PEAKING":"#f87171","SATURATED":"#888","DECLINING":"#4a5570"}
     lcc = lc_colors.get(lc,"#4a9eff")
 
-    sound_btn = f'<a href="{link}" class="sound-btn">ðµ Use This Sound â</a>' if link else ""
+    sound_btn = f'<a href="{link}" class="sound-btn">🎵 Use This Sound ↗</a>' if link else ""
 
     html = f"""
     <div class="sound-card">
@@ -844,7 +844,7 @@ def build_sound_card(s, memory, idx):
           <div style="font-size:10px;color:#4a5570;margin-top:2px;">{author}</div>
           <div style="font-size:10px;margin-top:3px;">
             <span style="color:{lcc};font-weight:700;">{lc}</span>
-            <span style="color:#4a5570;"> Â· </span>{confidence_badge(conf)}{repeat}
+            <span style="color:#4a5570;"> · </span>{confidence_badge(conf)}{repeat}
           </div>
         </div>
         <div style="text-align:right;font-size:10px;color:#4a5570;">
@@ -853,8 +853,8 @@ def build_sound_card(s, memory, idx):
         </div>
       </div>
       <div style="font-size:10px;color:#4a5570;margin-bottom:8px;">
-        Adoption: <strong style="color:#8a9ab0;">{v24}</strong> (24h) &nbsp;Â·&nbsp;
-        <strong style="color:#8a9ab0;">{v3d}</strong> (3d) &nbsp;Â·&nbsp;
+        Adoption: <strong style="color:#8a9ab0;">{v24}</strong> (24h) &nbsp;·&nbsp;
+        <strong style="color:#8a9ab0;">{v3d}</strong> (3d) &nbsp;·&nbsp;
         <strong style="color:#8a9ab0;">{v7d}</strong> (7d)
       </div>
       {sound_btn}
@@ -862,19 +862,19 @@ def build_sound_card(s, memory, idx):
 
     niche_vids = s.get("niche_videos",[])
     if niche_vids:
-        html += '<div style="font-size:10px;font-weight:700;color:#4a5570;letter-spacing:.5px;margin:10px 0 6px;">ð¹ FOOTBALL VIDEOS USING THIS SOUND</div>'
+        html += '<div style="font-size:10px;font-weight:700;color:#4a5570;letter-spacing:.5px;margin:10px 0 6px;">📹 FOOTBALL VIDEOS USING THIS SOUND</div>'
         for nv_item in niche_vids[:4]:
             is_wr_item = nv_item.get("is_wr", False)
             card_cls   = "wr-video" if is_wr_item else "niche-video"
             wr_label   = '<span class="tag tag-wr">WR</span>' if is_wr_item else ""
             db_flip    = nv_item.get("db_flip","")
-            watch_btn  = f'<a href="{nv_item["url"]}" class="watch-btn">Watch â</a>' if nv_item.get("url") else ""
-            prof_btn   = f'<a href="{nv_item.get("profile_url","")}" class="profile-btn">@{nv_item.get("author","")} â</a>' if nv_item.get("profile_url") else ""
+            watch_btn  = f'<a href="{nv_item["url"]}" class="watch-btn">Watch ↗</a>' if nv_item.get("url") else ""
+            prof_btn   = f'<a href="{nv_item.get("profile_url","")}" class="profile-btn">@{nv_item.get("author","")} ↗</a>' if nv_item.get("profile_url") else ""
             html += f"""
             <div class="{card_cls}">
               <div style="font-size:11px;font-weight:600;color:{plays_color(nv_item['plays'])};">{fmt_plays(nv_item['plays'])} views {wr_label}</div>
               <div style="font-size:10px;color:#8a9ab0;margin-top:2px;">{nv_item['desc'][:80]}</div>
-              <div style="font-size:10px;color:#4a5570;margin-top:2px;">{fconf_badge(nv_item.get('fconf',0))} Â· {confidence_badge(nv_item['confidence'])}</div>
+              <div style="font-size:10px;color:#4a5570;margin-top:2px;">{fconf_badge(nv_item.get('fconf',0))} · {confidence_badge(nv_item['confidence'])}</div>
               {"<div style='font-size:10px;color:#fb923c;margin-top:3px;'>"+db_flip+"</div>" if db_flip else ""}
               <div style="margin-top:4px;">{watch_btn} {prof_btn}</div>
             </div>"""
@@ -882,7 +882,7 @@ def build_sound_card(s, memory, idx):
     html += "</div>"
     return html
 
-# ââ CREATOR CARD ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── CREATOR CARD ──────────────────────────────────────────────────────────────
 def build_creator_card(c):
     fans    = c.get("fans",0)
     size    = c.get("size","MICRO")
@@ -897,7 +897,7 @@ def build_creator_card(c):
 
     tier_colors = {"NANO":"#f87171","MICRO":"#fb923c","EMERGING":"#4ade80","SMALL":"#4a9eff","RISING":"#888"}
     tc = tier_colors.get(size,"#4a9eff")
-    prof_btn = f'<a href="{profile}" class="profile-btn">@{handle} â</a>' if profile else f'<span style="color:#8a9ab0;">@{handle}</span>'
+    prof_btn = f'<a href="{profile}" class="profile-btn">@{handle} ↗</a>' if profile else f'<span style="color:#8a9ab0;">@{handle}</span>'
 
     html = f"""
     <div class="creator-card">
@@ -906,9 +906,9 @@ def build_creator_card(c):
           {prof_btn}
           <div style="font-size:10px;margin-top:3px;">
             <span style="color:{tc};font-weight:700;">{size}</span>
-            <span style="color:#4a5570;"> Â· </span>
+            <span style="color:#4a5570;"> · </span>
             <span style="color:#8a9ab0;">{fans:,} fans</span>
-            <span style="color:#4a5570;"> Â· </span>
+            <span style="color:#4a5570;"> · </span>
             <span style="color:#4ade80;">{ratio:.0f}x ratio</span>
           </div>
         </div>
@@ -921,13 +921,13 @@ def build_creator_card(c):
         card_cls = "wr-video" if is_wr else "niche-video"
         wr_tag  = '<span class="tag tag-wr">WR</span>' if is_wr else ""
         db_flip = v.get("db_flip","")
-        watch   = f'<a href="{v["url"]}" class="watch-btn">Watch â</a>' if v.get("url") else ""
-        sound_l = f'<a href="{v["sound_link"]}" class="sound-btn" style="font-size:10px;padding:3px 8px;">ðµ {v["sound"][:25]}</a>' if v.get("sound_link") else (f'<span style="font-size:10px;color:#4a5570;">ðµ {v["sound"][:25]}</span>' if v.get("sound") else "")
+        watch   = f'<a href="{v["url"]}" class="watch-btn">Watch ↗</a>' if v.get("url") else ""
+        sound_l = f'<a href="{v["sound_link"]}" class="sound-btn" style="font-size:10px;padding:3px 8px;">🎵 {v["sound"][:25]}</a>' if v.get("sound_link") else (f'<span style="font-size:10px;color:#4a5570;">🎵 {v["sound"][:25]}</span>' if v.get("sound") else "")
         copy    = v.get("copy_this","")
         opener  = v.get("opener","")
         opener_html  = f"<div style='font-size:10px;color:#4a9eff;margin-top:2px;font-style:italic;'>&quot;{opener}&quot;</div>" if opener else ""
         db_flip_html = f"<div style='font-size:10px;color:#fb923c;margin-top:3px;'>{db_flip}</div>" if db_flip else ""
-        copy_html    = f"<div style='font-size:10px;color:#4ade80;margin-top:3px;'>ð¡ {copy}</div>" if copy else ""
+        copy_html    = f"<div style='font-size:10px;color:#4ade80;margin-top:3px;'>💡 {copy}</div>" if copy else ""
         html += f"""
         <div class="{card_cls}" style="margin-top:8px;">
           <div style="font-size:12px;font-weight:600;color:{plays_color(v['plays'])};">{fmt_plays(v['plays'])} views {wr_tag} <span style="font-size:10px;color:#4a5570;">{v['days_ago']}d ago</span></div>
@@ -941,19 +941,19 @@ def build_creator_card(c):
     if htags:
         html += f'<div style="margin-top:8px;font-size:10px;color:#4a5570;">Hashtags: <span style="color:#8a9ab0;">#{(" #".join(htags[:8]))}</span></div>'
     if sounds:
-        html += f'<div style="font-size:10px;color:#4a5570;margin-top:2px;">Sounds: <span style="color:#8a9ab0;">{" Â· ".join(sounds[:3])}</span></div>'
+        html += f'<div style="font-size:10px;color:#4a5570;margin-top:2px;">Sounds: <span style="color:#8a9ab0;">{" · ".join(sounds[:3])}</span></div>'
 
     html += "</div>"
     return html
 
-# ââ HOOK DATABASE HTML ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── HOOK DATABASE HTML ────────────────────────────────────────────────────────
 def build_hooks_html(hooks_sorted, opener_patterns):
     if not hooks_sorted and not opener_patterns:
-        return '<p style="color:#4a5570;font-size:12px;">No hook patterns detected yet â will populate as more data accumulates.</p>'
+        return '<p style="color:#4a5570;font-size:12px;">No hook patterns detected yet — will populate as more data accumulates.</p>'
 
     html = ""
     if hooks_sorted:
-        html += '<h3>ð¯ RECURRING HOOK PATTERNS</h3>'
+        html += '<h3>🎯 RECURRING HOOK PATTERNS</h3>'
         for hook, data in hooks_sorted[:10]:
             mp = data.get("max_plays",0) or data.get("max_plays",0)
             ct = data.get("count",0)
@@ -963,20 +963,20 @@ def build_hooks_html(hooks_sorted, opener_patterns):
             <div class="hook-card">
               <div style="font-size:12px;font-weight:700;color:#e8ecf4;">"{hook.title()}"</div>
               <div style="font-size:10px;color:#4a5570;margin-top:2px;">
-                Seen <strong style="color:#8a9ab0;">{ct}x</strong> &nbsp;Â·&nbsp;
+                Seen <strong style="color:#8a9ab0;">{ct}x</strong> &nbsp;·&nbsp;
                 Peak <strong style="color:{plays_color(mp)};">{fmt_plays(mp)}</strong> views
               </div>
               {ex_html}
             </div>"""
 
     if opener_patterns:
-        html += '<h3 style="margin-top:12px;">ð OPENER PATTERNS (from memory)</h3>'
+        html += '<h3 style="margin-top:12px;">📝 OPENER PATTERNS (from memory)</h3>'
         for pattern, count in opener_patterns[:8]:
-            html += f'<div style="font-size:11px;color:#8a9ab0;margin-bottom:4px;">â¢ <strong style="color:#e8ecf4;">"{pattern}..."</strong> â used {count}x in top videos</div>'
+            html += f'<div style="font-size:11px;color:#8a9ab0;margin-bottom:4px;">• <strong style="color:#e8ecf4;">"{pattern}..."</strong> — used {count}x in top videos</div>'
 
     return html
 
-# ââ MORNING EMAIL âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── MORNING EMAIL ─────────────────────────────────────────────────────────────
 def build_morning_email(sounds, creators, tags, top_vids, ideas, date_str, memory, gaps):
     post_time = best_post_time()
     hooks_sorted, opener_patterns = build_hook_database(
@@ -991,7 +991,7 @@ def build_morning_email(sounds, creators, tags, top_vids, ideas, date_str, memor
         for i, s in enumerate(sounds[:6]):
             sounds_html += build_sound_card(s, memory, i)
     else:
-        sounds_html = '<p style="color:#4a5570;">No trending sounds detected â check Apify token and try again.</p>'
+        sounds_html = '<p style="color:#4a5570;">No trending sounds detected — check Apify token and try again.</p>'
 
     # Creators HTML
     creators_html = ""
@@ -1007,18 +1007,18 @@ def build_morning_email(sounds, creators, tags, top_vids, ideas, date_str, memor
         views = data.get("views",0)
         vcount = data.get("video_count",0)
         color = plays_color(views) if views > 0 else "#4a5570"
-        tags_html += f'<span class="tag" style="background:{color}20;color:{color};border:1px solid {color}40;">#{tag} {fmt_plays(views) if views else "â"}</span>'
+        tags_html += f'<span class="tag" style="background:{color}20;color:{color};border:1px solid {color}40;">#{tag} {fmt_plays(views) if views else "—"}</span>'
 
     # Ideas HTML
     ideas_html = ""
     pcolors = {"URGENT":"#f87171","HOT":"#fbbf24","WATCH":"#4a9eff"}
     for idea in ideas[:5]:
         pc = pcolors.get(idea["priority"],"#4a9eff")
-        sl = f'<a href="{idea["sound_link"]}" class="sound-btn" style="font-size:10px;padding:3px 8px;">ðµ {idea["sound"][:30]}</a>' if idea.get("sound_link") else f'<span style="font-size:10px;color:#4a5570;">ðµ {idea.get("sound","--")}</span>'
-        inspo = f'<a href="{idea["inspo_url"]}" class="watch-btn">Watch inspo â</a>' if idea.get("inspo_url") else ""
+        sl = f'<a href="{idea["sound_link"]}" class="sound-btn" style="font-size:10px;padding:3px 8px;">🎵 {idea["sound"][:30]}</a>' if idea.get("sound_link") else f'<span style="font-size:10px;color:#4a5570;">🎵 {idea.get("sound","--")}</span>'
+        inspo = f'<a href="{idea["inspo_url"]}" class="watch-btn">Watch inspo ↗</a>' if idea.get("inspo_url") else ""
         ideas_html += f"""
         <div class="idea-card" style="border-color:{pc};">
-          <div style="font-size:10px;font-weight:700;color:{pc};margin-bottom:4px;">{idea["priority"]} Â· {idea["pillar"]}{" "+inspo}</div>
+          <div style="font-size:10px;font-weight:700;color:{pc};margin-bottom:4px;">{idea["priority"]} · {idea["pillar"]}{" "+inspo}</div>
           <div style="font-size:13px;color:#d4d8e0;margin-bottom:4px;">{idea["idea"]}</div>
           <div style="font-size:10px;color:#4a5570;">Hook: <em style="color:#8a9ab0;">"{idea["hook"]}"</em></div>
           <div style="font-size:10px;color:#4a5570;margin-top:3px;">{idea["hashtags"]} &nbsp; {sl}</div>
@@ -1029,7 +1029,7 @@ def build_morning_email(sounds, creators, tags, top_vids, ideas, date_str, memor
     for g in gaps[:3]:
         gaps_html += f"""
         <div class="gap-card">
-          <div style="font-size:11px;font-weight:700;color:#4a9eff;">{g["gap"]} GAP <span style="color:#4a5570;font-weight:400;">Â· {g["pillar"]}</span></div>
+          <div style="font-size:11px;font-weight:700;color:#4a9eff;">{g["gap"]} GAP <span style="color:#4a5570;font-weight:400;">· {g["pillar"]}</span></div>
           <div style="font-size:12px;color:#d4d8e0;margin-top:3px;">{g["idea"]}</div>
         </div>"""
 
@@ -1040,44 +1040,44 @@ def build_morning_email(sounds, creators, tags, top_vids, ideas, date_str, memor
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>{email_style()}</style></head><body>
 <div style="background:linear-gradient(135deg,#0d1117,#111a2e);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;border:1px solid #1c2a45;">
-  <div style="font-size:28px;margin-bottom:6px;">ð</div>
+  <div style="font-size:28px;margin-bottom:6px;">🏈</div>
   <h1 style="font-size:22px;font-weight:900;color:#e8ecf4;margin:0 0 4px;">Morning Brief</h1>
-  <p style="color:#4a5570;font-size:12px;margin:0;">{date_str} &nbsp;Â·&nbsp; Post window: <span style="color:#4a9eff;">{post_time}</span></p>
-  <div style="font-size:11px;color:#4a5570;margin-top:6px;">Run #{mem_runs} Â· v7 signal discovery mode</div>
+  <p style="color:#4a5570;font-size:12px;margin:0;">{date_str} &nbsp;·&nbsp; Post window: <span style="color:#4a9eff;">{post_time}</span></p>
+  <div style="font-size:11px;color:#4a5570;margin-top:6px;">Run #{mem_runs} · v7 signal discovery mode</div>
 </div>
 
 <div class="card">
-  <h2>ðµ TRENDING SOUNDS</h2>
+  <h2>🎵 TRENDING SOUNDS</h2>
   {sounds_html}
 </div>
 
 <div class="card">
-  <h2>ð¤ CREATOR SPOTLIGHTS</h2>
+  <h2>👤 CREATOR SPOTLIGHTS</h2>
   {creators_html}
 </div>
 
 <div class="card">
-  <h2>ð¯ HOOK DATABASE</h2>
+  <h2>🎯 HOOK DATABASE</h2>
   {hooks_html}
 </div>
 
 <div class="card">
-  <h2>ð TRENDING HASHTAGS</h2>
+  <h2>📈 TRENDING HASHTAGS</h2>
   <div style="margin-bottom:8px;">{tags_html}</div>
 </div>
 
 <div class="card">
-  <h2>ð¬ VIDEO IDEAS</h2>
+  <h2>🎬 VIDEO IDEAS</h2>
   {ideas_html}
 </div>
 
-{"<div class='card'><h2>ð³ï¸ CONTENT GAPS</h2>"+gaps_html+"</div>" if gaps_html else ""}
+{"<div class='card'><h2>🕳️ CONTENT GAPS</h2>"+gaps_html+"</div>" if gaps_html else ""}
 
-<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent v7 &nbsp;Â·&nbsp; Morning Brief &nbsp;Â·&nbsp; therealjoshjames22@gmail.com</p>
+<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent v7 &nbsp;·&nbsp; Morning Brief &nbsp;·&nbsp; therealjoshjames22@gmail.com</p>
 </body></html>"""
     return html
 
-# ââ AFTERNOON EMAIL âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── AFTERNOON EMAIL ───────────────────────────────────────────────────────────
 def build_afternoon_email(sounds, creators, top_vids, ideas, date_str, memory):
     post_time = best_post_time()
     urgent = [i for i in ideas if i["priority"] in ("URGENT","HOT")]
@@ -1085,7 +1085,7 @@ def build_afternoon_email(sounds, creators, top_vids, ideas, date_str, memory):
     viral_html = ""
     new_viral = [v for c in creators for v in c.get("videos",[]) if v.get("viral")]
     for v in new_viral[:5]:
-        watch = f'<a href="{v["url"]}" class="watch-btn">Watch â</a>' if v.get("url") else ""
+        watch = f'<a href="{v["url"]}" class="watch-btn">Watch ↗</a>' if v.get("url") else ""
         viral_html += f"""
         <div style="padding:10px 0;border-bottom:1px solid #1c2235;">
           <div style="font-size:13px;font-weight:600;color:{plays_color(v['plays'])};">{fmt_plays(v['plays'])} views</div>
@@ -1103,7 +1103,7 @@ def build_afternoon_email(sounds, creators, top_vids, ideas, date_str, memory):
         pc = pcolors.get(idea.get("priority","WATCH"),"#4a9eff")
         ideas_html += f"""
         <div class="idea-card" style="border-color:{pc};">
-          <div style="font-size:10px;font-weight:700;color:{pc};margin-bottom:4px;">{idea.get("priority")} Â· {idea.get("pillar")}</div>
+          <div style="font-size:10px;font-weight:700;color:{pc};margin-bottom:4px;">{idea.get("priority")} · {idea.get("pillar")}</div>
           <div style="font-size:13px;color:#d4d8e0;">{idea.get("idea")}</div>
           <div style="font-size:10px;color:#4a5570;margin-top:3px;">Sound: <strong style="color:#8a9ab0;">{idea.get("sound","--")}</strong></div>
         </div>"""
@@ -1112,18 +1112,18 @@ def build_afternoon_email(sounds, creators, top_vids, ideas, date_str, memory):
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>{email_style()}</style></head><body>
 <div style="background:linear-gradient(135deg,#0d1117,#111a2e);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;border:1px solid #1c2a45;">
-  <div style="font-size:28px;margin-bottom:6px;">âï¸</div>
+  <div style="font-size:28px;margin-bottom:6px;">☀️</div>
   <h1 style="font-size:20px;font-weight:900;color:#e8ecf4;">Afternoon Update</h1>
-  <p style="color:#4a5570;font-size:12px;">3PM &nbsp;Â·&nbsp; {date_str}</p>
+  <p style="color:#4a5570;font-size:12px;">3PM &nbsp;·&nbsp; {date_str}</p>
   <div style="margin-top:10px;background:#0d1018;border-radius:8px;padding:8px;font-size:12px;color:#4a9eff;">Post window tonight: {post_time}</div>
 </div>
-<div class="card"><h2>ð¥ Viral Right Now</h2>{viral_html}</div>
-<div class="card"><h2>ð¡ Top Ideas This Afternoon</h2>{ideas_html}</div>
-<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent v7 &nbsp;Â·&nbsp; 3PM Brief</p>
+<div class="card"><h2>🔥 Viral Right Now</h2>{viral_html}</div>
+<div class="card"><h2>💡 Top Ideas This Afternoon</h2>{ideas_html}</div>
+<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent v7 &nbsp;·&nbsp; 3PM Brief</p>
 </body></html>"""
     return html
 
-# ââ NIGHT EMAIL âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── NIGHT EMAIL ───────────────────────────────────────────────────────────────
 def build_night_email(sounds, creators, ideas, date_str, memory):
     viral_today = [v for c in creators for v in c.get("videos",[]) if v.get("viral")]
     top_sound   = sounds[0] if sounds else {"title":"--","link":""}
@@ -1132,7 +1132,7 @@ def build_night_email(sounds, creators, ideas, date_str, memory):
 
     recap_html = ""
     for v in viral_today[:5]:
-        watch = f'<a href="{v["url"]}" class="watch-btn">Watch â</a>' if v.get("url") else ""
+        watch = f'<a href="{v["url"]}" class="watch-btn">Watch ↗</a>' if v.get("url") else ""
         copy  = v.get("copy_this","")
         recap_html += f"""
         <div style="padding:10px 0;border-bottom:1px solid #1c2235;">
@@ -1160,31 +1160,31 @@ def build_night_email(sounds, creators, ideas, date_str, memory):
     mem_html = ""
     if top_hooks:
         mem_html = '<div style="margin-top:8px;font-size:11px;color:#4a5570;">Top hooks in memory: ' + \
-            " Â· ".join([f'<strong style="color:#8a9ab0;">"{h}"</strong>' for h,_ in top_hooks]) + "</div>"
+            " · ".join([f'<strong style="color:#8a9ab0;">"{h}"</strong>' for h,_ in top_hooks]) + "</div>"
 
     html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>{email_style()}</style></head><body>
 <div style="background:linear-gradient(135deg,#0a0c14,#0f1228);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;border:1px solid #1c2235;">
-  <div style="font-size:28px;margin-bottom:6px;">ð</div>
+  <div style="font-size:28px;margin-bottom:6px;">🌙</div>
   <h1 style="font-size:20px;font-weight:900;color:#e8ecf4;">Night Brief</h1>
-  <p style="color:#4a5570;font-size:12px;">8PM &nbsp;Â·&nbsp; {date_str}</p>
-  <div style="font-size:11px;color:#4a5570;margin-top:6px;">Run #{runs} Â· Long-term memory active{mem_html}</div>
+  <p style="color:#4a5570;font-size:12px;">8PM &nbsp;·&nbsp; {date_str}</p>
+  <div style="font-size:11px;color:#4a5570;margin-top:6px;">Run #{runs} · Long-term memory active{mem_html}</div>
 </div>
-<div class="card"><h2>ð What Went Viral In Your Niche Today</h2>{recap_html}</div>
-<div class="card"><h2>ð Tomorrow's Content Plan</h2>{tomorrow_html}</div>
+<div class="card"><h2>📊 What Went Viral In Your Niche Today</h2>{recap_html}</div>
+<div class="card"><h2>📅 Tomorrow's Content Plan</h2>{tomorrow_html}</div>
 <div style="background:#0a1828;border:1px solid #1e3a5f;border-radius:12px;padding:16px;margin-bottom:14px;">
   <h2 style="color:#4a9eff;">Use This Sound Tomorrow</h2>
-  <p style="font-size:14px;line-height:1.6;">{sound_rec} â post first thing in the morning for max reach</p>
+  <p style="font-size:14px;line-height:1.6;">{sound_rec} — post first thing in the morning for max reach</p>
 </div>
-<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent v7 &nbsp;Â·&nbsp; 8PM Brief</p>
+<p style="text-align:center;font-size:10px;color:#2a3048;padding:16px 0;">Football Trend Agent v7 &nbsp;·&nbsp; 8PM Brief</p>
 </body></html>"""
     return html
 
-# ââ EMAIL SENDER ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── EMAIL SENDER ──────────────────────────────────────────────────────────────
 def send_email(subject, html_body):
     if not EMAIL_PASSWORD:
-        print(f"[WARN] No EMAIL_PASSWORD â skipping send. Subject: {subject}")
+        print(f"[WARN] No EMAIL_PASSWORD — skipping send. Subject: {subject}")
         return
     try:
         msg             = MIMEMultipart("alternative")
@@ -1199,7 +1199,7 @@ def send_email(subject, html_body):
     except Exception as e:
         print(f"[ERROR] Email failed: {e}")
 
-# ââ WRITE DATA.JSON âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── WRITE DATA.JSON ───────────────────────────────────────────────────────────
 def write_data_json(sounds, creators, tags, top_vids, ideas, enriched):
     now   = datetime.utcnow().isoformat() + "Z"
     six_h = time.time() - 6 * 3600
@@ -1259,9 +1259,9 @@ def write_data_json(sounds, creators, tags, top_vids, ideas, enriched):
     }
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=2)
-    print(f"[OK] data.json written â {len(sounds)} sounds, {len(creators)} creators, {len(breakouts)} breakouts")
+    print(f"[OK] data.json written — {len(sounds)} sounds, {len(creators)} creators, {len(breakouts)} breakouts")
 
-# ââ MAIN ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ── MAIN ──────────────────────────────────────────────────────────────────────
 def main():
     date_str = datetime.now().strftime("%A, %B %-d %Y")
     brief    = BRIEF_TYPE.lower()
@@ -1274,7 +1274,7 @@ def main():
     memory = load_memory()
     prev   = load_prev_data()
 
-    # ââ FETCH ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ── FETCH ──────────────────────────────────────────────────────────────
     if brief in ("afternoon","night","scan") and prev and prev.get("briefType") == "morning":
         print("  Using cached morning data as base...")
         # Re-fetch only accelerating signals
@@ -1327,9 +1327,9 @@ def main():
         creators = fetch_creator_spy(enriched)
         tags, top_vids = fetch_hashtags(enriched)
 
-    # ââ FALLBACKS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ── FALLBACKS ─────────────────────────────────────────────────────────
     if not sounds:
-        print("  [FALLBACK] No sounds â check Apify token/results")
+        print("  [FALLBACK] No sounds — check Apify token/results")
     if not creators:
         print("  [FALLBACK] No creators detected this run")
 
@@ -1343,29 +1343,29 @@ def main():
 
     write_data_json(sounds, creators, tags, top_vids, ideas, enriched)
 
-    # ââ SEND EMAIL ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ── SEND EMAIL ────────────────────────────────────────────────────────
     if brief == "morning":
         html    = build_morning_email(sounds, creators, tags, top_vids, ideas, date_str, memory, gaps)
-        subject = f"ð Football Brief â {date_str}"
+        subject = f"🏈 Football Brief — {date_str}"
     elif brief == "afternoon":
         html    = build_afternoon_email(sounds, creators, top_vids, ideas, date_str, memory)
-        subject = f"Afternoon Update â {date_str}"
+        subject = f"Afternoon Update — {date_str}"
     elif brief == "night":
         html    = build_night_email(sounds, creators, ideas, date_str, memory)
-        subject = f"Night Brief â {date_str}"
+        subject = f"Night Brief — {date_str}"
     else:
         # scan: check for breakouts
         breakouts = [e for e in enriched if e["ct"] > time.time() - 6*3600 and e["plays"] >= 50_000 and not e["reject"]]
         if breakouts:
             b = breakouts[0]
             html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{{background:#0a0c10;color:#d4d8e0;font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;}}</style></head><body>
-            <h2 style="color:#f87171;">BREAKOUT ALERT ð¨</h2>
+            <h2 style="color:#f87171;">BREAKOUT ALERT 🚨</h2>
             <p><strong style="color:#e8ecf4;">@{b['author']}</strong> just hit <strong style="color:#f87171;">{b['plays']:,} views</strong> in the last 6 hours.</p>
             <p style="color:#8a9ab0;">{b['desc']}</p>
             <p style="color:#4a5570;">Sound: {b['music_name']}</p>
-            <p><a href="{b['url']}" style="color:#4a9eff;">Watch Video â</a></p>
+            <p><a href="{b['url']}" style="color:#4a9eff;">Watch Video ↗</a></p>
             </body></html>"""
-            subject = f"BREAKOUT: @{b['author']} â {b['plays']:,} views right now"
+            subject = f"BREAKOUT: @{b['author']} — {b['plays']:,} views right now"
             send_email(subject, html)
         else:
             print("[OK] Scan complete. No breakouts. data.json updated.\n")
