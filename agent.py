@@ -62,7 +62,7 @@ TIER_VIRAL              = 100_000
 TIER_MEGA               = 500_000
 
 # ── FOOTBALL CONFIDENCE KEYWORDS ─────────────────────────────────────────────
-# Weighted scoring — hard rejection
+# Weighted scoring — no hard rejection
 FOOTBALL_STRONG = {
     "quarterback","qb","cornerback","defensive back","db","linebacker","lb",
     "safety","wide receiver","wr","tight end","te","running back","rb",
@@ -92,7 +92,7 @@ SOCCER_REJECT = {
 }
 WR_SIGNALS = {
     "wr","wide receiver","widereceiver","route running","separation",
-    "release","`ands","catch radius","route tree","wideout",
+    "release","hands","catch radius","route tree","wideout",
 }
 
 def football_confidence(text):
@@ -354,7 +354,7 @@ def fetch_creator_videos(handles):
     results = []
     for handle in handles:
         batch = apify_run("clockworks/tiktok-scraper", {
-            "profiles":       [handle],
+            "profiles":      [handle],
             "resultsPerPage": 10,
             "sortType":       "latest",
             "proxyConfiguration": {"useApifyProxy": True},
@@ -370,7 +370,7 @@ def fetch_all_raw():
         # Priority hashtags: 40 results each
         raw = fetch_hashtag_batch(PRIORITY_HASHTAGS, 40)
         # Secondary hashtags: 20 results each
-        raw += fetch_hashtag_batch(SECONDARY_HASHTAGS, 20)
+        raw += fetchh_hashtag_batch(SECONDARY_HASHTAGS, 20)
         # Seed creator videos
         raw += fetch_creator_videos(SEED_CREATORS)
         print(f"  Total raw items (morning deep scrape): {len(raw)}")
@@ -1370,7 +1370,7 @@ def main():
         else:
             print("[OK] Scan complete. No breakouts. data.json updated.\n")
         print("[OK] Done.\n")
-        return
+  #     return
 
     send_email(subject, html)
     print("[OK] Done.\n")
