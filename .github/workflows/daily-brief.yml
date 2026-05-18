@@ -1,6 +1,7 @@
 name: Football Trend Agent v7
 
 on:
+  workflow_dispatch:
   schedule:
     # All times UTC
     # 6AM ET  = 10:00 UTC --> morning brief (deep scrape)
