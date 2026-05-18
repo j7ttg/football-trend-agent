@@ -68,7 +68,7 @@ FOOTBALL_STRONG = {
     "safety","wide receiver","wr","tight end","te","running back","rb",
     "offensive lineman","defensive end","pass rush","blitz","coverage",
     "press coverage","zone","man coverage","route","go route","slant",
-    "fade route","7on7","d1",1","d1athlete","d1football","ncaa","cfb",
+    "fade route","7on7","d1","d1athlete","d1football","ncaa","cfb",
     "college football","nfl","gridiron","football","american football",
     "snap","scrimmage","playbook","spring ball","fall ball","camp",
     "db camp","dbcamp","dbtraining","footballtraining","footballdrills",
